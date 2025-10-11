@@ -104,12 +104,17 @@ def _prepare_email_summary(raw_email: bytes) -> Tuple[Dict[str, str], str]:
     ]
     summary = "\n".join(summary_lines)
 
+    # Clean the body preview - strip HTML if present
+    clean_preview = body[:500].strip()
+    if clean_preview.startswith("<"):
+        clean_preview = _strip_html(clean_preview)
+    
     metadata = {
         "subject": subject,
         "sender": sender,
         "recipient": recipient,
         "date": date,
-        "body_preview": body[:500].strip(),
+        "body_preview": clean_preview.strip(),
     }
 
     return metadata, summary
@@ -143,10 +148,16 @@ def _extract_email_body(message) -> str:
             return "\n\n".join(html_fallback).strip()
     else:
         try:
-            return _coerce_to_text(message.get_content()).strip()
+            content = _coerce_to_text(message.get_content()).strip()
         except Exception:
             payload = message.get_payload(decode=True)
-            return _coerce_to_text(payload).strip()
+            content = _coerce_to_text(payload).strip()
+        
+        # Check if it's HTML and strip tags if needed
+        content_type = message.get_content_type()
+        if content_type == "text/html" or content.strip().startswith("<"):
+            return _strip_html(content)
+        return content
 
     return "(no readable body content found)"
 
