@@ -1,14 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const { signInWithEmail } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Get the redirect URL from query parameters, default to home page
+  const redirectTo = new URLSearchParams(location.search).get('redirect') || '/'
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +23,7 @@ export default function Login() {
     if (error) {
       setError(error)
     } else {
-      navigate('/')
+      navigate(redirectTo)
     }
   }
 

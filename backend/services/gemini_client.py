@@ -1,7 +1,7 @@
 import json
 import os
 from functools import lru_cache
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable, Tuple, Optional
 
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -90,6 +90,141 @@ def score_email(email_summary: str) -> Tuple[int, str]:
         raise GeminiClientError("Gemini response rationale was empty.")
 
     return score, rationale
+
+
+def generate_message(
+    message_type: str,
+    content_type: str,
+    difficulty: str = "medium",
+    theme: Optional[str] = None,
+    custom_prompt: Optional[str] = None
+) -> Dict[str, str]:
+    """
+    Generate a fake email or SMS for training purposes using Gemini AI.
+    
+    Args:
+        message_type: "email" or "sms"
+        content_type: "phishing" or "legitimate"
+        difficulty: "easy", "medium", or "hard"
+        theme: Optional theme like "friend", "job", "offer", "bank", "health", "other"
+        custom_prompt: Optional custom instructions
+    
+    Returns:
+        Dictionary with message components
+    """
+    
+    # Build the prompt based on parameters
+    prompt_parts = [
+        "You are an expert message generator creating training materials for phishing detection education.",
+        f"Generate a {content_type} {message_type} with {difficulty} difficulty level."
+    ]
+    
+    if theme:
+        prompt_parts.append(f"Theme: {theme}")
+    
+    if custom_prompt:
+        prompt_parts.append(f"Additional requirements: {custom_prompt}")
+    
+    if content_type == "phishing":
+        prompt_parts.extend([
+            "Make it realistic but include subtle phishing indicators that security training participants should learn to identify.",
+            "Include common phishing tactics like urgency, suspicious links, requests for personal information, or impersonation."
+        ])
+    else:
+        prompt_parts.extend([
+            "Make it a legitimate, professional message that would be safe to interact with.",
+            "Use proper formatting, legitimate-looking sender, and appropriate content."
+        ])
+    
+    if message_type == "email":
+        prompt_parts.extend([
+            "Format your response as a JSON object with the following structure:",
+            '{"subject": "Email subject line", "sender": "sender@domain.com", "recipient": "recipient@domain.com", "body": "Email body content", "phishing_indicators": ["list", "of", "indicators"], "explanation": "Brief explanation of why this is phishing/legitimate"}',
+            "For legitimate emails, set phishing_indicators to null.",
+            "Keep the email concise but realistic."
+        ])
+    else:  # SMS
+        prompt_parts.extend([
+            "Format your response as a JSON object with the following structure:",
+            '{"phone_number": "+1234567890", "contact_name": "Contact Name", "message": "SMS message content", "phishing_indicators": ["list", "of", "indicators"], "explanation": "Brief explanation of why this is phishing/legitimate"}',
+            "For legitimate SMS, set phishing_indicators to null.",
+            "Keep the SMS message short (under 160 characters) and realistic.",
+            "Use realistic phone numbers and contact names appropriate for the theme."
+        ])
+    
+    prompt = "\n".join(prompt_parts)
+    
+    # Use a different model configuration for generation
+    model = _get_generation_model()
+    
+    try:
+        response = model.generate_content(prompt)
+    except Exception as exc:
+        raise GeminiClientError(f"Gemini API call failed: {exc}") from exc
+    
+    response_text = _extract_text(response)
+    try:
+        parsed: Dict[str, str] = json.loads(response_text)
+    except json.JSONDecodeError as exc:
+        raise GeminiClientError(
+            f"Gemini response was not valid JSON: {response_text}"
+        ) from exc
+    
+    # Validate required fields based on message type
+    if message_type == "email":
+        required_fields = ["subject", "sender", "recipient", "body"]
+        for field in required_fields:
+            if field not in parsed:
+                raise GeminiClientError(f"Missing required field: {field}")
+    else:  # SMS
+        required_fields = ["phone_number", "contact_name", "message"]
+        for field in required_fields:
+            if field not in parsed:
+                raise GeminiClientError(f"Missing required field: {field}")
+    
+    # Add metadata
+    parsed["message_type"] = message_type
+    parsed["content_type"] = content_type
+    parsed["difficulty"] = difficulty
+    parsed["theme"] = theme
+    
+    return parsed
+
+
+@lru_cache(maxsize=1)
+def _get_generation_model(model_name: str = "models/gemini-flash-latest") -> genai.GenerativeModel:
+    """Configure and memoize the Gemini model instance for email generation."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise GeminiClientError("GEMINI_API_KEY is not set in the environment.")
+
+    genai.configure(api_key=api_key)
+    configured_model = os.getenv("GEMINI_MODEL", model_name)
+    max_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "2000"))
+    temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.7"))  # Higher creativity for generation
+    return genai.GenerativeModel(
+        configured_model,
+        generation_config={
+            "temperature": temperature,
+            "max_output_tokens": max_tokens,
+            "response_mime_type": "application/json",
+            "response_schema": {
+                "type": "object",
+                "properties": {
+                    "subject": {"type": "string"},
+                    "sender": {"type": "string"},
+                    "recipient": {"type": "string"},
+                    "body": {"type": "string"},
+                    "phone_number": {"type": "string"},
+                    "contact_name": {"type": "string"},
+                    "message": {"type": "string"},
+                    "phishing_indicators": {"type": "array", "items": {"type": "string"}},
+                    "explanation": {"type": "string"}
+                },
+                "required": ["phishing_indicators", "explanation"]
+            },
+        },
+    )
 
 
 def _extract_text(response) -> str:
