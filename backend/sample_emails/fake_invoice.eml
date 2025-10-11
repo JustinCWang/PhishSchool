@@ -1,0 +1,20 @@
+Return-Path: billing@secure-accounting.com
+Delivered-To: user@example.com
+From: "Amazon Billing" <billing@secure-accounting.com>
+Reply-To: billing@secure-accounting.com
+To: user@example.com
+Subject: URGENT: Invoice Overdue - Action Required
+Date: Thu, 10 Oct 2024 07:12:00 -0400
+Message-ID: <20241010.071200.billing@secure-accounting.com>
+MIME-Version: 1.0
+Content-Type: text/html; charset="utf-8"
+
+<html>
+  <body>
+    <p><strong>Dear Customer,</strong></p>
+    <p>Your invoice #A-99122 is <span style="color:red;">OVERDUE</span>. To avoid account suspension, you must submit payment immediately.</p>
+    <p>Download the invoice and pay within the next 2 hours: <a href="http://amaz0nbilling-security.com/login">Secure Payment Center</a></p>
+    <p>If you fail to do so your Amazon account will be permanently locked.</p>
+    <p>Amazon Billing Center</p>
+  </body>
+</html>
