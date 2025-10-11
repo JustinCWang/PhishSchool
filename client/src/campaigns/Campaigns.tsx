@@ -1,11 +1,87 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../context/useAuth'
+import { supabase } from '../lib/supabase'
 
 export default function Campaigns() {
+  const { user } = useAuth()
   const [optedIn, setOptedIn] = useState(false)
-  const [frequency, setFrequency] = useState('weekly')
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const handleSave = () => {
+  useEffect(() => {
+    let isMounted = true
+    async function loadPreferences() {
+      if (!user) {
+        setLoading(false)
+        setOptedIn(false)
+        setFrequency('weekly')
+        return
+      }
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('Users')
+        .select('opted_in, frequency')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (!isMounted) return
+      if (error) {
+        console.error('Failed to load campaign preferences:', error.message)
+        setErrorMessage('Unable to load preferences right now.')
+      } else {
+        setOptedIn(Boolean(data?.opted_in))
+        if (data?.frequency === 'daily' || data?.frequency === 'weekly' || data?.frequency === 'monthly') {
+          setFrequency(data.frequency)
+        } else {
+          setFrequency('weekly')
+        }
+      }
+      setLoading(false)
+    }
+    void loadPreferences()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  const handleSave = async () => {
+    if (!user) {
+      setErrorMessage('You need to be signed in to save preferences.')
+      return
+    }
+    setSaving(true)
+    setErrorMessage(null)
+    const upsertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      opted_in: optedIn,
+      frequency: optedIn ? frequency : 'weekly',
+    }
+    if (user.email) {
+      upsertPayload.email = user.email
+    }
+    const firstName = typeof user.user_metadata?.first_name === 'string' ? user.user_metadata.first_name : null
+    if (firstName) {
+      upsertPayload.first_name = firstName
+    }
+    const lastName = typeof user.user_metadata?.last_name === 'string' ? user.user_metadata.last_name : null
+    if (lastName) {
+      upsertPayload.last_name = lastName
+    }
+
+    const { error } = await supabase
+      .from('Users')
+      .upsert(
+        upsertPayload,
+        { onConflict: 'user_id' }
+      )
+    setSaving(false)
+    if (error) {
+      console.error('Failed to save campaign preferences:', error)
+      setErrorMessage(`Failed to save preferences. ${error.message ?? ''}`.trim())
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -36,13 +112,7 @@ export default function Campaigns() {
           {/* Toggle Switch */}
           <div className="flex items-center justify-between rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="opt-in-toggle"
-                checked={optedIn}
-                onChange={(e) => setOptedIn(e.target.checked)}
-                className="h-6 w-6 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
-              />
+              <input type="checkbox" id="opt-in-toggle" checked={optedIn} onChange={(e) => setOptedIn(e.target.checked)} disabled={!user || loading || saving} className="h-6 w-6 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50" />
               <label htmlFor="opt-in-toggle" className="cursor-pointer">
                 <div className="font-semibold text-gray-800">
                   Receive test phishing emails
@@ -70,38 +140,17 @@ export default function Campaigns() {
                 Email Frequency
               </label>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <button
-                  onClick={() => setFrequency('daily')}
-                  className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 ${
-                    frequency === 'daily'
-                      ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 bg-white hover:border-indigo-300'
-                  }`}
-                >
+                <button onClick={() => setFrequency('daily')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'daily' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
                   <div className="mb-1 text-2xl">🌅</div>
                   <div className="font-semibold text-gray-800">Daily</div>
                   <div className="text-xs text-gray-500">Most practice</div>
                 </button>
-                <button
-                  onClick={() => setFrequency('weekly')}
-                  className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 ${
-                    frequency === 'weekly'
-                      ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 bg-white hover:border-indigo-300'
-                  }`}
-                >
+                <button onClick={() => setFrequency('weekly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'weekly' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
                   <div className="mb-1 text-2xl">📅</div>
                   <div className="font-semibold text-gray-800">Weekly</div>
                   <div className="text-xs text-gray-500">Recommended</div>
                 </button>
-                <button
-                  onClick={() => setFrequency('monthly')}
-                  className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 ${
-                    frequency === 'monthly'
-                      ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 bg-white hover:border-indigo-300'
-                  }`}
-                >
+                <button onClick={() => setFrequency('monthly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'monthly' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
                   <div className="mb-1 text-2xl">🗓️</div>
                   <div className="font-semibold text-gray-800">Monthly</div>
                   <div className="text-xs text-gray-500">Light practice</div>
@@ -111,12 +160,8 @@ export default function Campaigns() {
           )}
 
           {/* Save Button */}
-          <button
-            type="button"
-            onClick={handleSave}
-            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-          >
-            {saved ? (
+          <button type="button" onClick={handleSave} disabled={!user || loading || saving} className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60">
+            {saving ? 'Saving...' : saved ? (
               <span className="flex items-center justify-center gap-2">
                 <span>✓</span> Preferences Saved!
               </span>
@@ -126,6 +171,9 @@ export default function Campaigns() {
               </span>
             )}
           </button>
+          {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+          {!user && !errorMessage && <p className="text-sm text-gray-600">Sign in to manage your phishing campaign preferences.</p>}
+          {loading && <p className="text-sm text-gray-500">Loading preferences...</p>}
         </div>
       </div>
 
