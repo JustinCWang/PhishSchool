@@ -1,5 +1,3 @@
-import './Learn.css'
-
 export default function Learn() {
   return (
     <div className="space-y-6">

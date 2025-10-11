@@ -1,5 +1,3 @@
-import './Campaigns.css'
-
 export default function Campaigns() {
   return (
     <div className="space-y-6">

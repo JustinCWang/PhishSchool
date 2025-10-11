@@ -1,5 +1,3 @@
-import './Detector.css'
-
 export default function Detector() {
   return (
     <div className="space-y-6">
