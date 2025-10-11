@@ -32,12 +32,11 @@ function Navbar() {
 
 export default function Layout() {
   return (
-    <div className="min-h-dvh bg-gray-100 text-gray-900">
+    <div className="min-h-dvh bg-gradient-to-b from-white to-gray-400 text-gray-900">
       <Navbar />
       <main className="w-full px-8 py-8">
         <Outlet />
       </main>
-      <footer className="bg-white py-6 text-left px-8 text-sm text-gray-600 shadow-sm">© {new Date().getFullYear()} PhishSchool</footer>
     </div>
   )
 }

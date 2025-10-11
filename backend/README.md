@@ -130,7 +130,7 @@ app.include_router(your_new_router.router, prefix="/api/your-route", tags=["your
 
 ### Uploads (`/api/uploads`)
 - `GET /api/uploads/` - Info about upload endpoints
-- `POST /api/uploads/eml` - Upload and score a `.eml` email for phishing risk
+- `POST /api/uploads/eml` - Upload and score a `.eml` email or image (PNG/JPEG/WebP/GIF) for phishing risk
 
 ## Adding Dependencies
 
