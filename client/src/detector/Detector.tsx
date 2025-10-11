@@ -65,7 +65,22 @@ export default function Detector() {
       }
 
       const data = await response.json()
-      setResult(data)
+      // Transform backend response to match frontend expectations
+      const transformedData = {
+        status: 'success',
+        filename: data.filename,
+        score: data.score,
+        risk_level: data.score >= 70 ? 'high' : data.score >= 40 ? 'medium' : 'low',
+        email_data: {
+          from: data.metadata?.sender || '',
+          to: data.metadata?.recipient || '',
+          subject: data.metadata?.subject || '',
+          date: data.metadata?.date || '',
+        },
+        explanation: data.rationale || '',
+        indicators: data.rationale ? [data.rationale] : [],
+      }
+      setResult(transformedData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -77,8 +92,7 @@ export default function Detector() {
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <div className="mb-4 text-6xl">🔍</div>
-        <h1 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
+        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
           Phishing Detector
         </h1>
         <p className="mt-3 text-lg text-gray-600">
@@ -108,7 +122,7 @@ export default function Detector() {
           <label htmlFor="file-upload" className="cursor-pointer">
             <div className="mb-4 text-5xl">📧</div>
             <p className="mb-2 text-lg font-semibold text-gray-700">
-              Drop your .eml file here or click to browse
+              Drop your file here or click to browse
             </p>
             <p className="text-sm text-gray-500">
               Supports email files exported from Outlook, Gmail, and other clients
@@ -132,7 +146,7 @@ export default function Detector() {
           type="button"
           onClick={handleAnalyze}
           disabled={loading || !file}
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          className="mt-6 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -140,7 +154,7 @@ export default function Detector() {
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              🔍 Analyze Email
+              🔍 Analyze File
             </span>
           )}
         </button>
@@ -273,9 +287,9 @@ export default function Detector() {
       {/* Empty State */}
       {!result && !error && !loading && (
         <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-          <div className="mb-3 text-4xl">💡</div>
+          <div className="mb-3 text-4xl">↑</div>
           <p className="text-gray-600">
-            Upload an email file to get started with phishing detection
+            Upload a file to get started with phishing detection
           </p>
         </div>
       )}

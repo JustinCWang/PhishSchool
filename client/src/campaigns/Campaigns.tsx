@@ -14,8 +14,7 @@ export default function Campaigns() {
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <div className="mb-4 text-6xl">🎯</div>
-        <h1 className="bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-4xl font-bold text-transparent">
+        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
           Training Campaigns
         </h1>
         <p className="mt-3 text-lg text-gray-600">
@@ -115,7 +114,7 @@ export default function Campaigns() {
           <button
             type="button"
             onClick={handleSave}
-            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
           >
             {saved ? (
               <span className="flex items-center justify-center gap-2">

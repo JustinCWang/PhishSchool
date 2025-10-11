@@ -21,7 +21,6 @@ export default function Learn() {
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <div className="mb-4 text-6xl">🎓</div>
         <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
           Learn & Practice
         </h1>
@@ -41,8 +40,8 @@ export default function Learn() {
           <div className="mb-2 text-3xl">✗</div>
           <div className="text-3xl font-bold">0</div>
           <div className="text-sm opacity-90">Incorrect Answers</div>
-        </div>
-        <div className="rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
+        </div> 
+        <div className="rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
           <div className="mb-2 text-3xl">🎯</div>
           <div className="text-3xl font-bold">—%</div>
           <div className="text-sm opacity-90">Accuracy Rate</div>
@@ -108,7 +107,7 @@ export default function Learn() {
           </div>
 
           {/* Question */}
-          <div className="mb-6 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 p-6 text-center">
+          <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 p-6 text-center">
             <h3 className="mb-2 text-xl font-bold text-gray-800">
               Is this email a phishing attempt?
             </h3>
