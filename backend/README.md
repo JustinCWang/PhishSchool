@@ -18,7 +18,20 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-### 3. Run the Server
+### 3. Configure Environment
+Set your Gemini API key so the phishing analysis can call the LLM:
+```bash
+export GEMINI_API_KEY="your-google-generative-ai-key"
+```
+Optional overrides (defaults shown):
+```bash
+export GEMINI_MODEL="models/gemini-flash-latest"
+export GEMINI_MAX_OUTPUT_TOKENS=800
+export GEMINI_TEMPERATURE=0.2
+```
+You can place these in a `.env` file if you prefer; the backend loads it automatically.
+
+### 4. Run the Server
 ```bash
 python main.py
 ```
@@ -117,7 +130,7 @@ app.include_router(your_new_router.router, prefix="/api/your-route", tags=["your
 
 ### Uploads (`/api/uploads`)
 - `GET /api/uploads/` - Info about upload endpoints
-- `POST /api/uploads/eml` - Upload .eml file (TODO: implement)
+- `POST /api/uploads/eml` - Upload and score a `.eml` email for phishing risk
 
 ## Adding Dependencies
 
