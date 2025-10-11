@@ -161,30 +161,56 @@ def generate_message(
     # Use a different model configuration for generation
     model = _get_generation_model()
     
-    try:
-        response = model.generate_content(prompt)
-    except Exception as exc:
-        raise GeminiClientError(f"Gemini API call failed: {exc}") from exc
-    
-    response_text = _extract_text(response)
-    try:
-        parsed: Dict[str, str] = json.loads(response_text)
-    except json.JSONDecodeError as exc:
-        raise GeminiClientError(
-            f"Gemini response was not valid JSON: {response_text}"
-        ) from exc
-    
-    # Validate required fields based on message type
-    if message_type == "email":
-        required_fields = ["subject", "sender", "recipient", "body"]
-        for field in required_fields:
-            if field not in parsed:
-                raise GeminiClientError(f"Missing required field: {field}")
-    else:  # SMS
-        required_fields = ["phone_number", "contact_name", "message"]
-        for field in required_fields:
-            if field not in parsed:
-                raise GeminiClientError(f"Missing required field: {field}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            response_text = _extract_text(response)
+            
+            try:
+                parsed: Dict[str, str] = json.loads(response_text)
+            except json.JSONDecodeError as exc:
+                print(f"[ATTEMPT {attempt + 1}] JSON Parse Error: {exc}")
+                print(f"[ATTEMPT {attempt + 1}] Gemini Response: {response_text}")
+                if attempt == max_retries - 1:
+                    raise GeminiClientError(f"Failed to parse JSON after {max_retries} attempts")
+                continue
+            
+            # Clean up null string values
+            for key, value in parsed.items():
+                if value == "null" or value == "":
+                    parsed[key] = None
+            
+            # Validate required fields based on message type
+            validation_error = None
+            if message_type == "email":
+                required_fields = ["subject", "sender", "recipient", "body"]
+                for field in required_fields:
+                    if field not in parsed or parsed[field] is None:
+                        validation_error = f"Missing required field: {field}"
+                        break
+            else:  # SMS
+                required_fields = ["phone_number", "contact_name", "message"]
+                for field in required_fields:
+                    if field not in parsed or parsed[field] is None:
+                        validation_error = f"Missing required field: {field}"
+                        break
+            
+            if validation_error:
+                print(f"[ATTEMPT {attempt + 1}] Validation Error: {validation_error}")
+                print(f"[ATTEMPT {attempt + 1}] Parsed Data: {parsed}")
+                if attempt == max_retries - 1:
+                    raise GeminiClientError(f"Validation failed after {max_retries} attempts: {validation_error}")
+                continue
+            
+            # If we get here, everything is valid
+            break
+            
+        except Exception as exc:
+            print(f"[ATTEMPT {attempt + 1}] API Call Error: {exc}")
+            if attempt == max_retries - 1:
+                raise GeminiClientError(f"Gemini API call failed after {max_retries} attempts: {exc}") from exc
+            continue
     
     # Add metadata
     parsed["message_type"] = message_type
