@@ -1,7 +1,7 @@
 import json
 import os
 from functools import lru_cache
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable, Optional, Sequence, Tuple
 
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -43,29 +43,33 @@ def _get_model(model_name: str = "models/gemini-flash-latest") -> genai.Generati
     )
 
 
-def score_email(email_summary: str) -> Tuple[int, str]:
+def score_email(email_summary: str, image_parts: Optional[Sequence[dict]] = None) -> Tuple[int, str]:
     """
     Ask Gemini to score an email for phishing risk.
 
     Returns a tuple of (score, rationale).
     """
     prompt = (
-        "You are a security analyst who labels emails for phishing risk. "
-        "Given the email metadata and body below, assign a phishing likelihood score "
-        "between 1 and 100, where 1 means certainly safe and 100 means certainly phishing. "
+        "You are a security analyst who labels content for phishing risk. "
+        "Given the provided information (which may include parsed email text or visual attachments), "
+        "assign a phishing likelihood score between 1 and 100, where 1 means certainly safe and 100 means certainly phishing. "
+        "If an image is provided, transcribe relevant text or describe critical visual cues before scoring. "
         "Reply strictly as a compact JSON object with the following schema:\n"
         '{\"score\": <integer>, \"rationale\": \"<concise explanation>\"}.\n'
         "Do not include Markdown, code fences, or any text outside the JSON object. "
         "Keep the rationale to three sentences or fewer.\n\n"
-        "If the email appears incomplete or you cannot decide, set the score to 50 and explain why.\n\n"
-        "Email to score:\n"
+        "If the evidence appears incomplete or inconclusive, set the score to 50 and explain why.\n\n"
+        "Content to score:\n"
         f"{email_summary}\n"
     )
 
     model = _get_model()
 
     try:
-        response = model.generate_content(prompt)
+        if image_parts:
+            response = model.generate_content([prompt, *image_parts])
+        else:
+            response = model.generate_content(prompt)
     except Exception as exc:
         raise GeminiClientError(f"Gemini API call failed: {exc}") from exc
 
