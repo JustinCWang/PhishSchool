@@ -1,10 +1,26 @@
 import { useState } from 'react'
+import { GoogleGenAI } from '@google/genai'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [geminiOutput, setGeminiOutput] = useState<string>('')
+
+  async function handleGeminiDemo() {
+    try {
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY })
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: 'Explain how AI works in a few words',
+      })
+      setGeminiOutput(response.text ?? '')
+    } catch (error) {
+      setGeminiOutput('Failed to fetch from Gemini. Check console and your API key.')
+      console.error('Gemini demo error', error)
+    }
+  }
 
   return (
     <>
@@ -24,6 +40,16 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
+        <div style={{ marginTop: 16 }}>
+          <button onClick={handleGeminiDemo}>
+            Run Gemini Demo
+          </button>
+          {geminiOutput && (
+            <p style={{ marginTop: 8 }}>
+              {geminiOutput}
+            </p>
+          )}
+        </div>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
