@@ -1,199 +1,138 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? 'http://localhost:8000'
 
-type EmailMetadata = {
-  subject?: string | null
-  sender?: string | null
-  recipient?: string | null
-  date?: string | null
-  body_preview?: string | null
-  attachment_type: 'eml' | 'image'
-  content_type?: string | null
-}
+const API_BASE_URL = 'http://localhost:8000'
 
-type AnalysisResult = {
+type DetectorResult = {
   filename: string
   score: number
-  rationale: string
-  metadata: EmailMetadata
+  risk_level: 'safe' | 'low' | 'medium' | 'high'
+  email_data: {
+    from: string
+    to: string
+    subject: string
+    date: string
+  }
+  explanation: string
+  indicators: string[]
 }
 
-type UploadState =
-  | { status: 'idle' }
-  | { status: 'loading'; filename?: string }
-  | { status: 'success'; result: AnalysisResult }
-  | { status: 'error'; message: string }
 
 export default function Detector() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' })
+  const [file, setFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<DetectorResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
-  const formattedMetadata = useMemo(() => {
-    if (uploadState.status !== 'success') return null
-    const { metadata, filename } = uploadState.result
-    const entries: Array<{ label: string; value: string }> = [
-      { label: 'Filename', value: filename },
-    ]
 
-    if (metadata.attachment_type === 'eml') {
-      entries.push(
-        { label: 'Subject', value: metadata.subject ?? '—' },
-        { label: 'From', value: metadata.sender ?? '—' },
-        { label: 'To', value: metadata.recipient ?? '—' },
-        { label: 'Date', value: metadata.date ?? '—' },
-      )
-    } else {
-      entries.push(
-        {
-          label: 'Attachment Type',
-          value: metadata.attachment_type === 'image' ? 'Image' : metadata.attachment_type,
-        },
-        { label: 'Content Type', value: metadata.content_type ?? '—' },
-      )
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+      setError(null)
+      setResult(null)
     }
-
-    return entries
-  }, [uploadState])
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null
-    setSelectedFile(file)
-    setUploadState({ status: 'idle' })
   }
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!selectedFile) {
-      setUploadState({
-        status: 'error',
-        message: 'Please choose an .eml file or image first.',
-      })
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0]
+      const fileName = droppedFile.name.toLowerCase()
+      const validExtensions = ['.eml', '.png', '.jpg', '.jpeg', '.webp', '.gif']
+      const isValid = validExtensions.some(ext => fileName.endsWith(ext))
+      
+      if (isValid) {
+        setFile(droppedFile)
+        setError(null)
+        setResult(null)
+      } else {
+        setError('Please upload a .eml file or an image (.png, .jpg, .jpeg, .webp, .gif)')
+      }
+    }
+  }
+
+
+  const handleAnalyze = async () => {
+    if (!file) {
+      setError('Please select a file first')
       return
     }
 
-    setUploadState({ status: 'loading', filename: selectedFile.name })
-    const formData = new FormData()
-    formData.append('file', selectedFile)
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
 
     try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+
       const response = await fetch(`${API_BASE_URL}/api/uploads/eml`, {
         method: 'POST',
         body: formData,
       })
 
+
       if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}))
-        const detail = errorPayload?.detail ?? 'Failed to analyze the email.'
-        throw new Error(detail)
+        throw new Error('Upload failed')
       }
 
-      const result: AnalysisResult = await response.json()
-      setUploadState({ status: 'success', result })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Something went wrong.'
-      setUploadState({ status: 'error', message })
+
+      const data = await response.json()
+      // Transform backend response to match typed DetectorResult
+      const scoreNum = Number(data.score ?? 0)
+      const risk: DetectorResult['risk_level'] = scoreNum >= 70 ? 'high' : scoreNum >= 40 ? 'medium' : 'low'
+
+      const transformedData: DetectorResult = {
+        filename: String(data.filename ?? ''),
+        score: scoreNum,
+        risk_level: risk,
+        email_data: {
+          from: String(data.metadata?.sender ?? ''),
+          to: String(data.metadata?.recipient ?? ''),
+          subject: String(data.metadata?.subject ?? ''),
+          date: String(data.metadata?.date ?? ''),
+        },
+        explanation: String(data.rationale ?? ''),
+        indicators: data.rationale ? [String(data.rationale)] : [],
+      }
+      setResult(transformedData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
     }
   }
 
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Detector</h1>
-      <p className="text-gray-600">
-        Upload an .eml file or an image screenshot. We will parse and score it for phishing risk.
-      </p>
-
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input
-            type="file"
-            accept=".eml,image/*"
-            onChange={handleFileChange}
-            className="block w-full cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            type="submit"
-            disabled={uploadState.status === 'loading'}
-            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {uploadState.status === 'loading' ? 'Analyzing…' : 'Analyze'}
-          </button>
-        </form>
-
-        <div className="mt-6 space-y-4">
-          {uploadState.status === 'idle' && (
-            <div className="rounded-md bg-gray-50 p-4 text-sm text-gray-700">
-              Upload an .eml file or image screenshot to receive a phishing likelihood score.
-            </div>
-          )}
-
-          {uploadState.status === 'loading' && (
-            <div className="rounded-md bg-indigo-50 p-4 text-sm text-indigo-700">
-              Analyzing {uploadState.filename ?? 'email'}…
-            </div>
-          )}
-
-          {uploadState.status === 'error' && (
-            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-              {uploadState.message}
-            </div>
-          )}
-
-          {uploadState.status === 'success' && (
-            <div className="space-y-4">
-              <div className="rounded-md bg-gray-50 p-4 text-sm text-gray-800">
-                <div className="flex items-baseline gap-3">
-                  <p className="text-lg font-semibold">
-                    Score:{' '}
-                    <span className="font-bold text-indigo-600">
-                      {uploadState.result.score}
-                    </span>
-                  </p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">
-                    (1 = safe, 100 = phishing)
-                  </p>
-                </div>
-                <p className="mt-2 leading-relaxed text-gray-700">
-                  {uploadState.result.rationale}
-                </p>
-              </div>
-
-              {formattedMetadata && (
-                <div className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    {uploadState.result.metadata.attachment_type === 'image'
-                      ? 'Image details'
-                      : 'Email details'}
-                  </h2>
-                  <dl className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {formattedMetadata.map(({ label, value }) => (
-                      <div key={label}>
-                        <dt className="text-xs uppercase tracking-wide text-gray-500">
-                          {label}
-                        </dt>
-                        <dd className="text-sm text-gray-800">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  {uploadState.result.metadata.body_preview && (
-                    <div className="mt-4 rounded-md bg-gray-50 p-3">
-                      <h3 className="text-xs uppercase tracking-wide text-gray-500">
-                        {uploadState.result.metadata.attachment_type === 'image'
-                          ? 'Attachment summary'
-                          : 'Body preview'}
-                      </h3>
-                      <p className="mt-1 whitespace-pre-line text-sm text-gray-700">
-                        {uploadState.result.metadata.body_preview}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+    <div className="mx-auto max-w-4xl space-y-8">
+      {/* Header Section */}
+      <div className="text-center">
+        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
+          Phishing Detector
+        </h1>
+        <p className="mt-3 text-lg text-gray-600">
+          Upload an email file or screenshot and let AI analyze it for phishing attempts
+        </p>
       </div>
+
 
       {/* Upload Section */}
       <div className="rounded-2xl border-2 border-gray-200 bg-white p-8 shadow-lg transition-shadow hover:shadow-xl">
@@ -209,18 +148,18 @@ export default function Detector() {
         >
           <input
             type="file"
-            accept=".eml"
+            accept=".eml,.png,.jpg,.jpeg,.webp,.gif"
             onChange={handleFileChange}
             id="file-upload"
             className="hidden"
           />
           <label htmlFor="file-upload" className="cursor-pointer">
-            <div className="mb-4 text-5xl">📧</div>
+            <div className="mb-4 text-5xl">📧🖼️</div>
             <p className="mb-2 text-lg font-semibold text-gray-700">
-              Drop your file here or click to browse
+              Drop your email or screenshot here or click to browse
             </p>
             <p className="text-sm text-gray-500">
-              Supports email files exported from Outlook, Gmail, and other clients
+              Supports .eml files and images (.png, .jpg, .jpeg, .webp, .gif)
             </p>
           </label>
           {file && (
@@ -236,6 +175,7 @@ export default function Detector() {
             </div>
           )}
         </div>
+
 
         <button
           type="button"
@@ -255,6 +195,7 @@ export default function Detector() {
         </button>
       </div>
 
+
       {/* Error Display */}
       {error && (
         <div className="animate-shake rounded-xl border-2 border-red-200 bg-red-50 p-6 shadow-md">
@@ -267,6 +208,7 @@ export default function Detector() {
           </div>
         </div>
       )}
+
 
       {/* Results Display */}
       {result && (
@@ -295,6 +237,7 @@ export default function Detector() {
               Risk Level: {result.risk_level || 'Unknown'}
             </p>
 
+
             {/* Score Bar */}
             {result.score >= 0 && (
               <div className="mt-6">
@@ -317,6 +260,7 @@ export default function Detector() {
               </div>
             )}
           </div>
+
 
           {/* Email Details */}
           {result.email_data && (
@@ -345,6 +289,7 @@ export default function Detector() {
             </div>
           )}
 
+
           {/* Indicators */}
           {result.indicators && result.indicators.length > 0 && (
             <div className="rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 p-6 shadow-lg">
@@ -362,6 +307,7 @@ export default function Detector() {
             </div>
           )}
 
+
           {/* AI Explanation */}
           {result.explanation && (
             <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-lg">
@@ -372,12 +318,14 @@ export default function Detector() {
             </div>
           )}
 
+
           {/* Filename */}
           <div className="text-center text-sm text-gray-500">
             Analyzed: {result.filename}
           </div>
         </div>
       )}
+
 
       {/* Empty State */}
       {!result && !error && !loading && (
