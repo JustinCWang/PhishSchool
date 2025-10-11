@@ -1,15 +1,284 @@
+import { useState } from 'react'
+
+const API_BASE_URL = 'http://localhost:8000'
+
 export default function Detector() {
+  const [file, setFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+      setError(null)
+      setResult(null)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0]
+      if (droppedFile.name.endsWith('.eml')) {
+        setFile(droppedFile)
+        setError(null)
+        setResult(null)
+      } else {
+        setError('Please upload a .eml file')
+      }
+    }
+  }
+
+  const handleAnalyze = async () => {
+    if (!file) {
+      setError('Please select a file first')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`${API_BASE_URL}/api/uploads/eml`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await response.json()
+      setResult(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Detector</h1>
-      <p className="text-gray-600">Upload an .eml file. We will parse and score it.</p>
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <form className="space-y-4">
-          <input type="file" accept=".eml" className="block w-full cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-          <button type="button" className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">Analyze</button>
-        </form>
-        <div className="mt-4 rounded-md bg-gray-50 p-4 text-sm text-gray-700">Score: — (placeholder)</div>
+    <div className="mx-auto max-w-4xl space-y-8">
+      {/* Header Section */}
+      <div className="text-center">
+        <div className="mb-4 text-6xl">🔍</div>
+        <h1 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
+          Phishing Detector
+        </h1>
+        <p className="mt-3 text-lg text-gray-600">
+          Upload an email file and let AI analyze it for phishing attempts
+        </p>
       </div>
+
+      {/* Upload Section */}
+      <div className="rounded-2xl border-2 border-gray-200 bg-white p-8 shadow-lg transition-shadow hover:shadow-xl">
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`relative rounded-xl border-3 border-dashed p-12 text-center transition-all ${
+            isDragging
+              ? 'border-indigo-500 bg-indigo-50'
+              : 'border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50/50'
+          }`}
+        >
+          <input
+            type="file"
+            accept=".eml"
+            onChange={handleFileChange}
+            id="file-upload"
+            className="hidden"
+          />
+          <label htmlFor="file-upload" className="cursor-pointer">
+            <div className="mb-4 text-5xl">📧</div>
+            <p className="mb-2 text-lg font-semibold text-gray-700">
+              Drop your .eml file here or click to browse
+            </p>
+            <p className="text-sm text-gray-500">
+              Supports email files exported from Outlook, Gmail, and other clients
+            </p>
+          </label>
+          {file && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700">
+              <span>📎</span>
+              <span>{file.name}</span>
+              <button
+                onClick={() => setFile(null)}
+                className="ml-2 text-indigo-500 hover:text-indigo-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={loading || !file}
+          className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⚙️</span> Analyzing...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              🔍 Analyze Email
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="animate-shake rounded-xl border-2 border-red-200 bg-red-50 p-6 shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-red-900">Error</h3>
+              <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results Display */}
+      {result && (
+        <div className="animate-fadeIn space-y-4">
+          {/* Risk Level Banner */}
+          <div
+            className={`rounded-2xl border-2 p-8 shadow-lg ${
+              result.risk_level === 'safe' || result.risk_level === 'low'
+                ? 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50'
+                : result.risk_level === 'medium'
+                ? 'border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50'
+                : 'border-red-200 bg-gradient-to-br from-red-50 to-pink-50'
+            }`}
+          >
+            <div className="mb-4 text-center text-5xl">
+              {result.risk_level === 'safe' || result.risk_level === 'low'
+                ? '✅'
+                : result.risk_level === 'medium'
+                ? '⚠️'
+                : '🚨'}
+            </div>
+            <h3 className="mb-2 text-center text-2xl font-bold text-gray-800">
+              Analysis Complete
+            </h3>
+            <p className="text-center text-lg font-semibold capitalize text-gray-700">
+              Risk Level: {result.risk_level || 'Unknown'}
+            </p>
+
+            {/* Score Bar */}
+            {result.score >= 0 && (
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Phishing Score</span>
+                  <span className="text-2xl font-bold text-gray-800">{result.score}/100</span>
+                </div>
+                <div className="h-4 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      result.score < 30
+                        ? 'bg-green-500'
+                        : result.score < 60
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    }`}
+                    style={{ width: `${result.score}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Email Details */}
+          {result.email_data && (
+            <div className="rounded-2xl border-2 border-gray-200 bg-white p-6 shadow-lg">
+              <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800">
+                <span>📧</span> Email Details
+              </h4>
+              <div className="space-y-3">
+                <div className="flex gap-2 text-sm">
+                  <span className="font-semibold text-gray-600">From:</span>
+                  <span className="break-all text-gray-800">{result.email_data.from}</span>
+                </div>
+                <div className="flex gap-2 text-sm">
+                  <span className="font-semibold text-gray-600">To:</span>
+                  <span className="break-all text-gray-800">{result.email_data.to}</span>
+                </div>
+                <div className="flex gap-2 text-sm">
+                  <span className="font-semibold text-gray-600">Subject:</span>
+                  <span className="break-all text-gray-800">{result.email_data.subject}</span>
+                </div>
+                <div className="flex gap-2 text-sm">
+                  <span className="font-semibold text-gray-600">Date:</span>
+                  <span className="text-gray-800">{result.email_data.date}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Indicators */}
+          {result.indicators && result.indicators.length > 0 && (
+            <div className="rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 p-6 shadow-lg">
+              <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800">
+                <span>🔍</span> Detected Indicators
+              </h4>
+              <ul className="space-y-2">
+                {result.indicators.map((indicator: string, index: number) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                    <span className="mt-0.5 text-orange-500">▸</span>
+                    <span>{indicator}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* AI Explanation */}
+          {result.explanation && (
+            <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-lg">
+              <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800">
+                <span>🤖</span> AI Analysis
+              </h4>
+              <p className="text-sm leading-relaxed text-gray-700">{result.explanation}</p>
+            </div>
+          )}
+
+          {/* Filename */}
+          <div className="text-center text-sm text-gray-500">
+            Analyzed: {result.filename}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!result && !error && !loading && (
+        <div className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+          <div className="mb-3 text-4xl">💡</div>
+          <p className="text-gray-600">
+            Upload an email file to get started with phishing detection
+          </p>
+        </div>
+      )}
     </div>
   )
 }
