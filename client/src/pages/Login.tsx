@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 export default function Login() {
   const { signInWithEmail } = useAuth()
@@ -31,6 +31,7 @@ export default function Login() {
     <div className="mx-auto w-full max-w-md rounded-xl border border-gray-200 bg-white p-6">
       <h1 className="mb-4 text-2xl font-bold">Login</h1>
       <form className="space-y-4" onSubmit={onSubmit}>
+        
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />

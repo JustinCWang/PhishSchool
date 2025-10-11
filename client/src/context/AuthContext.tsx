@@ -1,17 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-
-type AuthContextValue = {
-  user: User | null
-  session: Session | null
-  loading: boolean
-  signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>
-  signUpWithEmail: (email: string, password: string) => Promise<{ error?: string }>
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+import { AuthContext, type AuthContextValue } from './AuthContext'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -25,11 +15,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session)
       setUser(data.session?.user ?? null)
       setLoading(false)
+      if (data.session?.user) {
+        void ensureUsersRow(data.session.user)
+      }
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
       setUser(newSession?.user ?? null)
+      if (newSession?.user) {
+        void ensureUsersRow(newSession.user)
+      }
     })
 
     return () => {
@@ -43,9 +39,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message }
   }
 
-  async function signUpWithEmail(email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password })
+  async function signUpWithEmail(email: string, password: string, firstName: string, lastName: string) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        },
+      },
+    })
     return { error: error?.message }
+  }
+
+  async function ensureUsersRow(currentUser: User) {
+    const upsertPayload = {
+      user_id: currentUser.id,
+      email: currentUser.email,
+      first_name: (currentUser.user_metadata && (currentUser.user_metadata.first_name as string)) || undefined,
+      last_name: (currentUser.user_metadata && (currentUser.user_metadata.last_name as string)) || undefined,
+    }
+    const { error: upsertError } = await supabase
+      .from('Users')
+      .upsert(upsertPayload, { onConflict: 'user_id' })
+    if (upsertError) {
+      console.error('Failed to ensure Users row:', upsertError.message)
+    }
   }
 
   async function signOut() {
@@ -59,11 +79,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
-}
-
-

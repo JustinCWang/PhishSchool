@@ -1,5 +1,5 @@
 import { Outlet, Link, NavLink } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext.tsx'
+import { useAuth } from '../context/useAuth'
 
 function Navbar() {
   const { user, signOut } = useAuth()
@@ -17,6 +17,7 @@ function Navbar() {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <div className="flex items-center gap-2">
+              <NavLink to="/profile" className={({ isActive }: { isActive: boolean }) => `px-3 py-2 rounded-md ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-blue-600'}`}>Profile</NavLink>
               <span className="hidden sm:inline text-gray-600">{user.email}</span>
               <button onClick={signOut} className="rounded-md bg-blue-600 px-3 py-2 text-white hover:bg-blue-700">Sign out</button>
             </div>

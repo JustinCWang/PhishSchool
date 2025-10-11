@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
 
 export default function Learn() {

@@ -6,6 +6,7 @@ import Detector from './detector/Detector'
 import Campaigns from './campaigns/Campaigns'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
+import Profile from './pages/Profile.tsx'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="campaigns" element={<Campaigns />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
     </Routes>
   )
