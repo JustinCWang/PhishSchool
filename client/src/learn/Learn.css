@@ -1,0 +1,26 @@
+/* Learn page specific styles */
+.learn-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.practice-email {
+  transition: all 0.3s ease;
+}
+
+.practice-email:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.answer-button {
+  transition: all 0.2s ease;
+}
+
+.answer-button:hover {
+  transform: scale(1.05);
+}
+
+.answer-button:active {
+  transform: scale(0.95);
+}
