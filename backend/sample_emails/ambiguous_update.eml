@@ -1,0 +1,19 @@
+Return-Path: noreply@it-services.com
+Delivered-To: user@example.com
+From: IT Services <noreply@it-services.com>
+To: user@example.com
+Subject: Password Policy Reminder
+Date: Thu, 10 Oct 2024 11:00:00 -0400
+Message-ID: <20241010.110000.noreply@it-services.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Hello,
+
+We are updating our password policy this week. Please ensure your password meets the new requirements.
+
+If you recently received a suspicious password reset email, ignore it and report to security@example.com.
+You can always reset your password from the employee portal at https://intranet.example.com.
+
+Thanks,
+IT Services

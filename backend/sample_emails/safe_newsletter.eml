@@ -1,0 +1,35 @@
+Return-Path: newsletter@trustedcompany.com
+Delivered-To: user@example.com
+From: Trusted Company <newsletter@trustedcompany.com>
+To: user@example.com
+Subject: Your Monthly Account Summary
+Date: Wed, 9 Oct 2024 10:35:00 -0400
+Message-ID: <20241009.103500.newsletter@trustedcompany.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="boundary001"
+
+--boundary001
+Content-Type: text/plain; charset="utf-8"
+
+Hi there,
+
+Here is your monthly account summary. Visit our official website at https://www.trustedcompany.com/dashboard
+to review the details. This email is informational only; we never ask for passwords by email.
+
+Thank you,
+Trusted Company Support Team
+
+--boundary001
+Content-Type: text/html; charset="utf-8"
+
+<html>
+  <body>
+    <p>Hi there,</p>
+    <p>Here is your monthly account summary. Visit our official website at
+      <a href="https://www.trustedcompany.com/dashboard">https://www.trustedcompany.com/dashboard</a>
+      to review the details. This email is informational only; we never ask for passwords by email.</p>
+    <p>Thank you,<br/>Trusted Company Support Team</p>
+  </body>
+</html>
+
+--boundary001--
