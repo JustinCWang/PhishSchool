@@ -6,24 +6,37 @@ export default function Home() {
   const [geminiOutput, setGeminiOutput] = useState<string>('')
   const [typedText, setTypedText] = useState<string>('')
   const [showDetector, setShowDetector] = useState<boolean>(false)
+  const [showOtherSections, setShowOtherSections] = useState<boolean>(false)
   
   const fullText = "Over 3.4 billion phishing emails are sent every day. 90% of data breaches start with a phishing attack. In 2024, organizations faced an average of 1,265 phishing attacks per month. Don't become a statistic—protect yourself and your team."
 
   useEffect(() => {
     let index = 0
+    // Show detector after 2 seconds regardless of typing completion
+    const detectorTimer = setTimeout(() => setShowDetector(true), 1300)
+    
     const timer = setInterval(() => {
       if (index < fullText.length) {
         setTypedText(fullText.slice(0, index + 1))
         index++
       } else {
         clearInterval(timer)
-        // Show detector section after typing completes
-        setTimeout(() => setShowDetector(true), 100)
       }
-    }, 30) // Typing speed
+    }, 8) // Typing speed
 
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(timer)
+      clearTimeout(detectorTimer)
+    }
   }, [])
+
+  // Show other sections 800ms after detector appears
+  useEffect(() => {
+    if (showDetector) {
+      const timer = setTimeout(() => setShowOtherSections(true), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [showDetector])
 
   async function handleGeminiDemo() {
     try {
@@ -119,9 +132,13 @@ export default function Home() {
       </section>
 
       {/* Other Sections */}
-      <div className="grid gap-6 sm:grid-cols-2 w-full">
-        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
-          <div className="flex items-center gap-3 mb-3">
+      <div 
+        className={`grid gap-6 sm:grid-cols-2 w-full transition-all duration-1000 ease-out ${
+          showOtherSections ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+      >
+        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border-1 border-black flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-3 mb-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -133,8 +150,8 @@ export default function Home() {
           <Link to="/learn" className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Start Learning →</Link>
         </div>
         
-        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border-1 border-black flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-3 mb-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -146,14 +163,6 @@ export default function Home() {
           <Link to="/campaigns" className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Manage Campaigns →</Link>
         </div>
       </div>
-
-      <section className="w-full rounded-lg bg-white p-6 shadow-sm border border-gray-100">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">Gemini Demo</h3>
-        <div className="flex items-center gap-3">
-          <button onClick={handleGeminiDemo} className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">Run Gemini Demo</button>
-          {geminiOutput && <span className="text-sm text-gray-700">{geminiOutput}</span>}
-        </div>
-      </section>
     </div>
   )
 }
