@@ -1,6 +1,6 @@
 import json
 import os
-from functools import lru_cachehttps://github.githubassets.com/images/spinners/octocat-spinner-128.gif
+from functools import lru_cache
 from typing import Dict, Iterable, Optional, Sequence, Tuple
 
 from dotenv import load_dotenv
