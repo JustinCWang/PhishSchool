@@ -6,7 +6,6 @@ import Detector from './detector/Detector'
 import Campaigns from './campaigns/Campaigns'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
-import './App.css'
 
 function App() {
   return (
