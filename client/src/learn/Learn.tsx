@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/useAuth'
 import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
 
@@ -6,13 +6,36 @@ export default function Learn() {
   const { user, loading } = useAuth()
   const [currentMessage, setCurrentMessage] = useState<GeneratedMessageResponse | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generatingType, setGeneratingType] = useState<'random' | 'email' | 'sms' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [userAnswer, setUserAnswer] = useState<'phishing' | 'legitimate' | null>(null)
   const [showResult, setShowResult] = useState(false)
+  const [showLoginToast, setShowLoginToast] = useState(false)
+  const [showWelcomeToast, setShowWelcomeToast] = useState(false)
+  
+  // Difficulty dropdowns state
+  const [randomDifficulty, setRandomDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  const [emailDifficulty, setEmailDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  const [smsDifficulty, setSmsDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+
+  // Show toast notifications when user logs in
+  useEffect(() => {
+    if (user && !loading) {
+      setShowLoginToast(true)
+      setTimeout(() => {
+        setShowWelcomeToast(true)
+      }, 500)
+      
+      // Hide toasts after a few seconds
+      setTimeout(() => setShowLoginToast(false), 3000)
+      setTimeout(() => setShowWelcomeToast(false), 3500)
+    }
+  }, [user, loading])
 
   const generateNewMessage = async (contentType: 'phishing' | 'legitimate', difficulty: 'easy' | 'medium' | 'hard' = 'medium', messageType?: 'email' | 'sms', theme?: string) => {
 	try {
   	setIsGenerating(true)
+  	setGeneratingType(messageType === 'sms' ? 'sms' : 'email')
   	setError(null)
   	setUserAnswer(null)
   	setShowResult(false)
@@ -28,12 +51,14 @@ export default function Learn() {
   	setError(err instanceof Error ? err.message : 'Failed to generate message')
 	} finally {
   	setIsGenerating(false)
+  	setGeneratingType(null)
 	}
   }
 
   const generateRandomPracticeMessage = async () => {
 	try {
   	setIsGenerating(true)
+  	setGeneratingType('random')
   	setError(null)
   	setUserAnswer(null)
   	setShowResult(false)
@@ -44,6 +69,7 @@ export default function Learn() {
   	setError(err instanceof Error ? err.message : 'Failed to generate random message')
 	} finally {
   	setIsGenerating(false)
+  	setGeneratingType(null)
 	}
   }
 
@@ -66,43 +92,40 @@ export default function Learn() {
   if (loading) {
 	return (
   	<div className="space-y-6">
-    	<h1 className="text-2xl font-bold">Learn</h1>
-    	<p className="text-gray-600">Loading...</p>
+    	<h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Learn</h1>
+    	<p className="text-gray-600 text-center">Loading...</p>
   	</div>
 	)
   }
 
   return (
-	<div className="space-y-6">
-  	<h1 className="text-2xl font-bold">Learn</h1>
- 	 
-  	{/* Authentication Status Display */}
-  	{user ? (
-    	<div className="rounded-md bg-green-50 border border-green-200 p-4">
-      	<p className="text-green-800">
-        	✅ <strong>Logged in as:</strong> {user.email}
-      	</p>
-      	<p className="text-sm text-green-600 mt-1">
-        	You have access to all learning materials and can track your progress.
-      	</p>
-    	</div>
-  	) : (
-    	<div className="rounded-md bg-yellow-50 border border-yellow-200 p-4">
-      	<p className="text-yellow-800">
-        	⚠️ <strong>Not logged in</strong>
-      	</p>
-      	<p className="text-sm text-yellow-600 mt-1">
-        	Some features may be limited. <a href="/login?redirect=/learn" className="underline">Login</a> to access full functionality.
-      	</p>
+	<div className="space-y-8">
+  	{/* Toast Notifications */}
+  	{showLoginToast && (
+    	<div className="fixed top-4 right-4 z-50 animate-slideIn">
+      	<div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+        	<span className="text-xl">✓</span>
+        	<span className="font-medium">Logged in as {user?.email}</span>
+      	</div>
     	</div>
   	)}
+ 	 
+  	{showWelcomeToast && (
+    	<div className="fixed top-20 right-4 z-50 animate-slideIn">
+      	<div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+        	<span className="text-xl">👋</span>
+        	<span className="font-medium">Welcome back!</span>
+      	</div>
+    	</div>
+  	)}
+  	
+  	{/* Centered Title */}
+  	<h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+    	Learn
+  	</h1>
 
   	{user ? (
     	<>
-      	<p className="text-gray-600">
-        	Welcome back! Generate practice emails to test your phishing detection skills. Choose a difficulty level and email type to get started.
-      	</p>
-
       	{/* Error Display */}
       	{error && (
         	<div className="rounded-md bg-red-50 border border-red-200 p-4">
@@ -116,90 +139,107 @@ export default function Learn() {
         	</div>
       	)}
 
-      	{/* Message Generation Controls */}
-      	<div className="rounded-md bg-blue-50 border border-blue-200 p-4">
-        	<h3 className="font-semibold text-blue-800 mb-3">Generate Practice Message</h3>
-        	<p className="text-sm text-blue-700 mb-3">Choose a message type, difficulty level, and theme to start practicing:</p>
-       	 
-        	{/* Random Generation */}
-        	<div className="mb-4">
-          	<button
-            	onClick={generateRandomPracticeMessage}
-            	disabled={isGenerating}
-            	className="px-4 py-2 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50 font-medium"
-          	>
-            	🎲 Generate Random Message
-          	</button>
+      	{/* Centered Section Title */}
+      	<div className="text-center">
+        	<h2 className="text-2xl font-semibold text-gray-800 mb-2">Generate Practice Messages</h2>
+        	<p className="text-gray-600">Choose a message type and difficulty level to test your phishing detection skills</p>
+      	</div>
+
+      	{/* Three Side-by-Side Boxes */}
+      	<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        	{/* Random Message Box */}
+        	<div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          	<div className="text-center mb-4">
+            	<div className="text-4xl mb-2">🎲</div>
+            	<h3 className="text-xl font-bold text-purple-800">Random Message</h3>
+            	<p className="text-sm text-purple-600 mt-2">Get a surprise message of any type</p>
+          	</div>
+          	
+          	<div className="space-y-3">
+            	<div>
+              	<label className="block text-sm font-medium text-purple-700 mb-1">Difficulty</label>
+              	<select
+                	value={randomDifficulty}
+                	onChange={(e) => setRandomDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	className="w-full rounded-md border border-purple-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              	>
+                	<option value="easy">Easy</option>
+                	<option value="medium">Medium</option>
+                	<option value="hard">Hard</option>
+              	</select>
+            	</div>
+            	
+            	<button
+              	onClick={generateRandomPracticeMessage}
+              	disabled={isGenerating}
+              	className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            	>
+              	{generatingType === 'random' ? 'Generating...' : 'Generate Random'}
+            	</button>
+          	</div>
         	</div>
 
-        	{/* Specific Generation */}
-        	<div className="space-y-3">
-          	<div>
-            	<h4 className="text-sm font-medium text-blue-800 mb-2">Email Messages:</h4>
-            	<div className="flex flex-wrap gap-2">
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'easy', 'email', 'bank')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
-              	>
-                	Easy Phishing Email
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'medium', 'email', 'job')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
-              	>
-                	Medium Phishing Email
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'hard', 'email', 'health')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
-              	>
-                	Hard Phishing Email
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('legitimate', 'medium', 'email', 'friend')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50"
-              	>
-                	Legitimate Email
-              	</button>
-            	</div>
+        	{/* Email Message Box */}
+        	<div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          	<div className="text-center mb-4">
+            	<div className="text-4xl mb-2">📧</div>
+            	<h3 className="text-xl font-bold text-blue-800">Email Message</h3>
+            	<p className="text-sm text-blue-600 mt-2">Practice with email phishing attempts</p>
           	</div>
-
-          	<div>
-            	<h4 className="text-sm font-medium text-blue-800 mb-2">SMS Messages:</h4>
-            	<div className="flex flex-wrap gap-2">
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'easy', 'sms', 'offer')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 disabled:opacity-50"
+          	
+          	<div className="space-y-3">
+            	<div>
+              	<label className="block text-sm font-medium text-blue-700 mb-1">Difficulty</label>
+              	<select
+                	value={emailDifficulty}
+                	onChange={(e) => setEmailDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	className="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               	>
-                	Easy Phishing SMS
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'medium', 'sms', 'bank')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 disabled:opacity-50"
-              	>
-                	Medium Phishing SMS
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('phishing', 'hard', 'sms', 'other')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded hover:bg-orange-200 disabled:opacity-50"
-              	>
-                	Hard Phishing SMS
-              	</button>
-              	<button
-                	onClick={() => generateNewMessage('legitimate', 'medium', 'sms', 'friend')}
-                	disabled={isGenerating}
-                	className="px-3 py-1 text-sm bg-teal-100 text-teal-700 rounded hover:bg-teal-200 disabled:opacity-50"
-              	>
-                	Legitimate SMS
-              	</button>
+                	<option value="easy">Easy</option>
+                	<option value="medium">Medium</option>
+                	<option value="hard">Hard</option>
+              	</select>
             	</div>
+            	
+            	<button
+              	onClick={() => generateNewMessage('phishing', emailDifficulty, 'email', 'bank')}
+              	disabled={isGenerating}
+              	className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            	>
+              	{generatingType === 'email' ? 'Generating...' : 'Generate Email'}
+            	</button>
+          	</div>
+        	</div>
+
+        	{/* SMS/Text Message Box */}
+        	<div className="rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          	<div className="text-center mb-4">
+            	<div className="text-4xl mb-2">💬</div>
+            	<h3 className="text-xl font-bold text-green-800">Text Message</h3>
+            	<p className="text-sm text-green-600 mt-2">Practice with SMS phishing attacks</p>
+          	</div>
+          	
+          	<div className="space-y-3">
+            	<div>
+              	<label className="block text-sm font-medium text-green-700 mb-1">Difficulty</label>
+              	<select
+                	value={smsDifficulty}
+                	onChange={(e) => setSmsDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	className="w-full rounded-md border border-green-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+              	>
+                	<option value="easy">Easy</option>
+                	<option value="medium">Medium</option>
+                	<option value="hard">Hard</option>
+              	</select>
+            	</div>
+            	
+            	<button
+              	onClick={() => generateNewMessage('phishing', smsDifficulty, 'sms', 'offer')}
+              	disabled={isGenerating}
+              	className="w-full rounded-lg bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+            	>
+              	{generatingType === 'sms' ? 'Generating...' : 'Generate Text'}
+            	</button>
           	</div>
         	</div>
       	</div>
