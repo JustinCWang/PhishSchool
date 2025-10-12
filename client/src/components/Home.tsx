@@ -6,7 +6,7 @@ export default function Home() {
   const [showDetector, setShowDetector] = useState<boolean>(false)
   const [showOtherSections, setShowOtherSections] = useState<boolean>(false)
   
-  const fullText = "Over 3.4 billion phishing emails are sent every day. 90% of data breaches start with a phishing attack. In 2024, organizations faced an average of 1,265 phishing attacks per month. Don't become a statistic—protect yourself and your team."
+  const fullText = "Over 3.4 billion phishing emails are sent every day. 90% of data breaches start with a phishing attack. In 2024, organizations faced an average of 1,265 phishing attacks per month. Don't become a statistic—protect yourself"
 
   useEffect(() => {
     let index = 0
@@ -73,9 +73,9 @@ export default function Home() {
             
             {/* Content Section */}
             <div className="flex-1 text-center md:text-left">
-              <h2 className="text-3xl font-bold text-white mb-3">AI-Powered Email Detector</h2>
+              <h2 className="text-3xl font-bold text-white mb-3">AI-Powered Phishing Detector</h2>
               <p className="text-blue-100 text-base mb-4 leading-relaxed">
-                Upload any email file (.eml) and let our advanced AI analyze it for phishing indicators. 
+                Upload any email file (.eml) or image that you believe contains suspicious material and let us analyze it for phishing indicators. 
                 Get instant results with a detailed suspicion score, threat breakdown, and actionable insights 
                 to protect yourself from sophisticated attacks.
               </p>
