@@ -1,5 +1,7 @@
 # PhishSchool
 
+BostonHacks2025 "Protect Noobs!" Track Project 
+
 PhishSchool is a friendly, hands‑on platform that helps people learn to spot and avoid phishing. It combines quick practice, on‑demand detection, and optional training campaigns so users can build real, lasting instincts against scams.
 
 Why this matters: phishing preys on trust and urgency. Many at‑risk users (students, seniors, new employees) don’t receive consistent training. PhishSchool closes that gap by making security skills accessible, engaging, and repeatable.
@@ -42,5 +44,3 @@ Defaults allow the frontend (http://localhost:5173) to call the backend (http://
 
 - Web app: https://phish-school.vercel.app
 - Backend API (default fallback in client): https://phishschoolbackend.vercel.app/api
-
-For backend API docs locally, visit http://localhost:8000/docs.
