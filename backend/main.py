@@ -26,10 +26,12 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
-app.include_router(generate.router, prefix="/api/generate", tags=["generate"])
-app.include_router(email.router, prefix="/api/email", tags=["email"])
-app.include_router(tracking.router, prefix="/api", tags=["tracking"])  # exposes /api/track/*
+# Note: On Vercel, the app is mounted under "/api". Using non-"/api" prefixes here
+# ensures the final public paths remain "/api/<route>" (no double "/api").
+app.include_router(uploads.router, prefix="/uploads", tags=["uploads"])  
+app.include_router(generate.router, prefix="/generate", tags=["generate"])  
+app.include_router(email.router, prefix="/email", tags=["email"])  
+app.include_router(tracking.router, prefix="", tags=["tracking"])  # exposes /track/*
 
 @app.get("/")
 async def root():
