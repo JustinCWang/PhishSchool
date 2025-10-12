@@ -1,3 +1,9 @@
+"""Endpoints for generating training messages via Gemini.
+
+Supports structured phishing or legitimate content for email/SMS,
+including sample and random variations.
+"""
+
 from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -7,6 +13,15 @@ router = APIRouter()
 
 
 class MessageGenerationRequest(BaseModel):
+    """Request payload describing what kind of training message to generate.
+
+    Attributes:
+        message_type: Either "email" or "sms".
+        content_type: Either "phishing" or "legitimate".
+        difficulty: Difficulty level guiding realism and subtlety.
+        theme: Optional theme cue (e.g., bank, job, health).
+        custom_prompt: Optional extra instructions for generation.
+    """
     message_type: str  # "email" or "sms"
     content_type: str  # "phishing" or "legitimate"
     difficulty: Optional[str] = "medium"  # "easy", "medium", "hard"
@@ -15,6 +30,11 @@ class MessageGenerationRequest(BaseModel):
 
 
 class GeneratedMessageResponse(BaseModel):
+    """Response model returned from the generation endpoints.
+
+    Contains email- or SMS-specific fields depending on `message_type`,
+    along with phishing indicators and a brief explanation.
+    """
     message_type: str  # "email" or "sms"
     content_type: str  # "phishing" or "legitimate"
     difficulty: str

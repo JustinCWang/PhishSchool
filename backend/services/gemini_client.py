@@ -1,3 +1,10 @@
+"""Gemini client utilities for phishing scoring and message generation.
+
+Provides helpers to configure Gemini models, score uploaded content for
+phishing risk, and generate training emails/SMS with structured JSON
+responses.
+"""
+
 import json
 import os
 from functools import lru_cache

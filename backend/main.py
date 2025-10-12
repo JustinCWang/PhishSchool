@@ -1,3 +1,9 @@
+"""FastAPI application entry for PhishSchool backend.
+
+Configures CORS, mounts routers under both root and `/api`, and exposes
+simple health endpoints for deploy environments.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

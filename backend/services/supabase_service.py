@@ -1,3 +1,10 @@
+"""Supabase data access and campaign scheduling logic.
+
+This module encapsulates all interactions with Supabase for the simplified
+schema and provides logic to determine which users are due to receive
+training emails and to send them via the email service.
+"""
+
 from supabase import create_client, Client
 import os
 import logging
@@ -9,6 +16,12 @@ from services.email_service import get_email_service
 
 # Initialize Supabase client
 def get_supabase_client() -> Client:
+    """Create and return a Supabase client using environment variables.
+
+    Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to be set.
+    Attempts a retry without proxy-related environment variables if the SDK
+    raises a TypeError about an unexpected `proxy` keyword.
+    """
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Use service role key for backend
     
@@ -58,6 +71,7 @@ class CampaignService:
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
     ) -> Dict[str, Any]:
+        """Ensure a `Users` row exists for `user_id`, creating/upserting defaults."""
         defaults: Dict[str, Any] = {
             "user_id": user_id,
             "email": email,
@@ -79,6 +93,7 @@ class CampaignService:
         return result.data[0] if result.data else defaults
 
     async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a user record by `user_id` from the `Users` table."""
         res = (
             self.supabase
             .table("Users")
@@ -90,6 +105,7 @@ class CampaignService:
         return res.data if res.data else None
 
     async def get_user_email(self, user_id: str) -> Optional[str]:
+        """Return the user's email for `user_id`, or None if not found."""
         res = (
             self.supabase
             .table("Users")
@@ -101,6 +117,7 @@ class CampaignService:
         return (res.data or {}).get("email") if res.data else None
 
     async def opt_in_user(self, user_id: str, frequency: Optional[str] = None) -> Dict[str, Any]:
+        """Mark the user as opted-in and set a delivery `frequency`."""
         freq = frequency or "weekly"
         payload = {
             "opted_in": True,
@@ -116,6 +133,7 @@ class CampaignService:
         return res.data[0] if res.data else {"user_id": user_id, **payload}
 
     async def opt_out_user(self, user_id: str) -> Dict[str, Any]:
+        """Mark the user as opted-out of scheduled training emails."""
         res = (
             self.supabase
             .table("Users")
@@ -126,18 +144,21 @@ class CampaignService:
         return res.data[0] if res.data else {"user_id": user_id, "opted_in": False}
 
     async def increment_num_fished(self, user_id: str) -> None:
+        """Increment the `num_fished` counter for the given user."""
         current = await self.get_user(user_id)
         current_value = int((current or {}).get("num_fished") or 0)
         self.supabase.table("Users").update({"num_fished": current_value + 1}).eq("user_id", user_id).execute()
 
     # -------------------- Scores helpers --------------------
     async def ensure_scores_row(self, user_id: str) -> None:
+        """Ensure a `Scores` row exists for the user with zeroed counters."""
         self.supabase.table("Scores").upsert(
             {"score_id": user_id, "learn_attempted": 0, "learn_correct": 0},
             on_conflict="score_id",
         ).execute()
 
     async def record_learn_attempt(self, user_id: str, was_correct: bool) -> None:
+        """Record a learning attempt outcome in both `Users` and `Scores`."""
         # Update Users table counters
         current = await self.get_user(user_id)
         attempts = int((current or {}).get("learn_attempts") or 0) + 1
@@ -166,7 +187,7 @@ class CampaignService:
     # -------------------- Sending logic (due-based) --------------------
     async def send_scheduled_emails(self) -> Dict[str, Any]:
         """
-        Send training emails to Users who are opted-in and due based on `frequency` and `last_sent_at`.
+        Send emails to opted-in users who are due based on `frequency` and `last_sent_at`.
         """
         try:
             now_iso = datetime.utcnow().isoformat()
@@ -253,6 +274,7 @@ class CampaignService:
             }
 
     def _frequency_to_timedelta(self, frequency: str) -> timedelta:
+        """Map a frequency string (daily/weekly/monthly) to a timedelta."""
         f = (frequency or "weekly").lower()
         if f == "daily":
             return timedelta(days=1)

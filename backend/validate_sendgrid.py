@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""
-SendGrid Configuration Validator
-Validates SendGrid setup and tests basic functionality
+"""SendGrid configuration validator for local/manual checks.
+
+Validates required environment variables and attempts a simple send using the
+SendGrid SDK to confirm credentials and sender configuration.
 """
 
 import os

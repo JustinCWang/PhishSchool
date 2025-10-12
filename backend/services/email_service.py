@@ -1,3 +1,11 @@
+"""Email sending service built on SendGrid for training campaigns.
+
+This module provides an `EmailService` responsible for sending HTML/plain
+emails and rendering campaign-specific content. It also safely rewrites
+malicious-looking URLs in generated phishing content to point to the
+application's training page.
+"""
+
 import os
 from urllib.parse import urlparse
 from sendgrid import SendGridAPIClient
@@ -15,6 +23,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class EmailService:
+    """SendGrid-backed email sender for training campaigns.
+
+    Resolves configuration from environment, renders campaign content to
+    HTML/plain text, and performs safe link rewriting for phishing emails.
+    """
     def __init__(self):
         self.api_key = os.getenv("SENDGRID_API_KEY")
         if not self.api_key:
@@ -38,18 +51,16 @@ class EmailService:
         html_content: str,
         plain_content: Optional[str] = None,
     ) -> bool:
-        """
-        Send an email using SendGrid
-        
+        """Send an email using SendGrid.
+
         Args:
-            to_email: Recipient email address
-            subject: Email subject
-            html_content: HTML content of the email
-            plain_content: Plain text content (optional)
-            tracking_id: Tracking ID for analytics (optional)
-        
+            to_email: Recipient email address.
+            subject: Email subject line.
+            html_content: HTML body content of the email.
+            plain_content: Optional plain-text fallback if HTML is not provided.
+
         Returns:
-            bool: True if email was sent successfully, False otherwise
+            True if the email was accepted by SendGrid; otherwise False.
         """
         try:
             # Create the email

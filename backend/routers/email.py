@@ -1,3 +1,11 @@
+"""Email-related API endpoints for sending training emails.
+
+This router exposes:
+- POST /send-emails: trigger sending of due scheduled training emails
+- POST /send-test-email: send a basic test email to verify SendGrid integration
+- POST /send-phishing-now: immediately generate and send a training email to a user
+"""
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -9,6 +17,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class SendPhishingNowRequest(BaseModel):
+    """Request payload for immediate phishing email generation and send.
+
+    Attributes:
+        user_id: Supabase `Users.user_id` whose email address will be looked up.
+        difficulty: Generation difficulty hint for the content (easy/medium/hard).
+        theme: Optional theme to guide message generation (e.g., bank, job).
+    """
     user_id: str
     difficulty: Optional[str] = "medium"  # easy | medium | hard
     theme: Optional[str] = None
@@ -100,7 +115,6 @@ async def send_phishing_now(req: SendPhishingNowRequest):
     try:
         from services.email_service import get_email_service
         from services.gemini_client import generate_message, GeminiClientError
-        import os
 
         # Validate required environment configuration early with clear messages
         missing_env = [

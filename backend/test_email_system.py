@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""
-Test script for email functionality with Supabase and SendGrid
-Run this script to test your email setup
+"""Developer script to verify Supabase and SendGrid integration locally.
+
+Runs checks for required environment variables, basic Supabase connectivity,
+and a SendGrid email send using the configured sender.
 """
 
 import asyncio

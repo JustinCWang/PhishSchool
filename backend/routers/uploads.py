@@ -1,3 +1,9 @@
+"""Endpoints for uploading `.eml` or image files for phishing analysis.
+
+Parses uploaded emails/images, prepares compact prompts, and requests a
+phishing score and rationale from Gemini.
+"""
+
 import mimetypes
 import re
 from email import policy
@@ -27,6 +33,7 @@ _ALLOWED_IMAGE_TYPES = {
 
 
 class EmailMetadata(BaseModel):
+    """Metadata extracted from an uploaded email or synthesized for images."""
     subject: Optional[str] = None
     sender: Optional[str] = None
     recipient: Optional[str] = None
@@ -37,6 +44,7 @@ class EmailMetadata(BaseModel):
 
 
 class EmailAnalysisResponse(BaseModel):
+    """Standardized analysis result for an uploaded file."""
     filename: str
     score: int
     rationale: str
