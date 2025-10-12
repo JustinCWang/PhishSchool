@@ -5,12 +5,22 @@ import uuid
 from services.supabase_service import TrackingService
 
 router = APIRouter()
-tracking_service = TrackingService()
+
+def _get_tracking_service() -> TrackingService:
+    """Create TrackingService lazily so missing env vars don't crash import."""
+    try:
+        return TrackingService()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Tracking service not configured: {exc}"
+        )
 
 @router.get("/track/{tracking_id}")
 async def handle_email_click(tracking_id: str, request: Request):
     """Handle email click tracking and redirect appropriately"""
     try:
+        tracking_service = _get_tracking_service()
         # Record the click and get email data
         email_data = await tracking_service.record_email_click(
             tracking_id, 
@@ -39,6 +49,7 @@ async def handle_email_click(tracking_id: str, request: Request):
 async def get_tracking_stats(tracking_id: str):
     """Get tracking statistics for a specific email"""
     try:
+        tracking_service = _get_tracking_service()
         stats = await tracking_service.get_tracking_stats(tracking_id)
         
         if not stats:
