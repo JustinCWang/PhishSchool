@@ -40,12 +40,14 @@ export default function Home() {
     <div className="flex flex-col items-center space-y-12 max-w-6xl mx-auto">
       <header className="text-center space-y-4 pt-8">
         <h1 className="text-5xl font-extrabold tracking-tight text-gray-900">Welcome to PhishSchool</h1>
-        <p className="mt-2 text-lg text-gray-600">Learn to spot phishing, test emails, and run training campaigns.</p>
+        <p className="mt-2 text-lg text-gray-600">Learn to spot phishing, test emails and images, and run training campaigns.</p>
         
         <div className="mt-6 max-w-3xl mx-auto min-h-[120px]">
           <p className="text-sm text-gray-700 leading-relaxed">
             {typedText}
-            <span className="inline-block w-0.5 h-4 bg-blue-600 ml-1 animate-pulse"></span>
+            {typedText.length < fullText.length && (
+              <span className="inline-block w-0.5 h-4 bg-blue-600 ml-1 animate-pulse" aria-hidden="true"></span>
+            )}
           </p>
         </div>
       </header>
@@ -143,7 +145,7 @@ export default function Home() {
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
           </div>
-          <p className="mb-4 text-sm text-gray-600">Opt-in to periodic test phishing emails and track progress.</p>
+          <p className="mb-4 text-sm text-gray-600">Opt-in to periodic test phishing emails and track your progress.</p>
           <Link to="/campaigns" className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Manage Campaigns →</Link>
         </div>
       </div>
