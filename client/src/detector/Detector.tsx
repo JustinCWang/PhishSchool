@@ -125,8 +125,9 @@ export default function Detector() {
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
-          Phishing Detector
+        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
+          <span>Phishing Detector</span>
+          <img src="/phishschoolicon.png" alt="PhishSchool Icon" className="h-12 w-auto object-contain" />
         </h1>
         <p className="mt-3 text-lg text-gray-600">
           Upload an email file or screenshot and let AI analyze it for phishing attempts

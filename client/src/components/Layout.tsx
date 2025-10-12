@@ -7,7 +7,7 @@ function Navbar() {
     <nav className="sticky top-0 z-10 bg-white shadow-sm">
       <div className="flex items-center gap-6 px-8 py-4">
         <Link to="/" className="flex items-center" aria-label="PhishSchool Home">
-          <img src="/phishschoollogo.png" alt="PhishSchool" className="h-8 w-auto object-contain" />
+          <img src="/phishschoollogo.png" alt="PhishSchool" className="h-10 w-auto object-contain" />
         </Link>
         <div className="flex items-center gap-2 text-sm">
           <NavLink to="/learn" className={({ isActive }: { isActive: boolean }) => `px-3 py-2 rounded-md ${isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:text-blue-600'}`}>Learn</NavLink>

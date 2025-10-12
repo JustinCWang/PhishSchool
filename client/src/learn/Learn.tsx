@@ -288,9 +288,10 @@ export default function Learn() {
   	{/* Title with Score on Right */}
   	<div className="flex items-center justify-between">
     	<div className="flex-1"></div>
-    	<h1 className="flex-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-      	Learn
-    	</h1>
+    <h1 className="flex-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent flex items-center justify-center gap-3">
+      <span>Learn</span>
+      <img src="/LearnFish.png" alt="Learn Fish" className="h-16 w-auto object-contain" />
+    </h1>
     	{user && (
       	<div className="flex-1 flex justify-end">
         	{loadingStats ? (
