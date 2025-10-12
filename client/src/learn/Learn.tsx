@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/useAuth'
 import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 export default function Learn() {
   const { user, loading } = useAuth()
@@ -17,6 +18,44 @@ export default function Learn() {
   const [randomDifficulty, setRandomDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [emailDifficulty, setEmailDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
   const [smsDifficulty, setSmsDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  
+  // Score tracking state
+  const [learnAttempts, setLearnAttempts] = useState(0)
+  const [learnCorrect, setLearnCorrect] = useState(0)
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  // Load user stats from Supabase
+  useEffect(() => {
+    let isMounted = true
+    async function loadStats() {
+      if (!user) {
+        setLoadingStats(false)
+        setLearnAttempts(0)
+        setLearnCorrect(0)
+        return
+      }
+      setLoadingStats(true)
+      const { data, error } = await supabase
+        .from('Users')
+        .select('learn_attempts, learn_correct')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      
+      if (!isMounted) return
+      
+      if (error) {
+        console.error('Failed to load learn stats:', error.message)
+      } else {
+        setLearnAttempts(data?.learn_attempts ?? 0)
+        setLearnCorrect(data?.learn_correct ?? 0)
+      }
+      setLoadingStats(false)
+    }
+    void loadStats()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
 
   // Show toast notifications when user logs in
   useEffect(() => {
@@ -73,9 +112,33 @@ export default function Learn() {
 	}
   }
 
-  const handleAnswer = (answer: 'phishing' | 'legitimate') => {
+  const handleAnswer = async (answer: 'phishing' | 'legitimate') => {
 	setUserAnswer(answer)
 	setShowResult(true)
+	
+	// Update stats in database
+	if (user && currentMessage) {
+  	const correct = currentMessage.content_type === answer
+  	const newAttempts = learnAttempts + 1
+  	const newCorrect = correct ? learnCorrect + 1 : learnCorrect
+  	
+  	// Update local state immediately
+  	setLearnAttempts(newAttempts)
+  	setLearnCorrect(newCorrect)
+  	
+  	// Update database
+  	const { error } = await supabase
+    	.from('Users')
+    	.update({
+      	learn_attempts: newAttempts,
+      	learn_correct: newCorrect
+    	})
+    	.eq('user_id', user.id)
+  	
+  	if (error) {
+    	console.error('Failed to update learn stats:', error.message)
+  	}
+	}
   }
 
   const isCorrect = () => {
@@ -138,6 +201,37 @@ export default function Learn() {
           	</button>
         	</div>
       	)}
+
+      	{/* Current Score Section */}
+      	<div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 shadow-lg">
+        	<h2 className="text-xl font-bold text-indigo-800 text-center mb-4">📊 Your Current Score</h2>
+        	
+        	{loadingStats ? (
+          	<div className="text-center text-gray-600">Loading stats...</div>
+        	) : (
+          	<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            	{/* Total Attempts */}
+            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
+              	<div className="text-3xl font-bold text-indigo-600">{learnAttempts}</div>
+              	<div className="text-sm text-gray-600 mt-1">Total Attempts</div>
+            	</div>
+            	
+            	{/* Correct Guesses */}
+            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
+              	<div className="text-3xl font-bold text-green-600">{learnCorrect}</div>
+              	<div className="text-sm text-gray-600 mt-1">Correct Guesses</div>
+            	</div>
+            	
+            	{/* Accuracy Percentage */}
+            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
+              	<div className="text-3xl font-bold text-purple-600">
+                	{learnAttempts > 0 ? Math.round((learnCorrect / learnAttempts) * 100) : 0}%
+              	</div>
+              	<div className="text-sm text-gray-600 mt-1">Accuracy</div>
+            	</div>
+          	</div>
+        	)}
+      	</div>
 
       	{/* Centered Section Title */}
       	<div className="text-center">
