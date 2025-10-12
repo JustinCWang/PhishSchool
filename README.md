@@ -44,3 +44,8 @@ Defaults allow the frontend (http://localhost:5173) to call the backend (http://
 
 - Web app: https://phish-school.vercel.app
 - Backend API (default fallback in client): https://phishschoolbackend.vercel.app/api
+
+## Future Improvements 
+
+- It's rare users would visit a new application to learn / detect phishing, so turning this into a chrome extension which could be used while in the gmail inbox would be ideal.
+- Although our learn module is gamafied, I think the game could be improved, as in rather then just choosing whether the email/text is phish, having the user select parts which seem phishy to them in the email, and see if they are able to correctly identify them.
