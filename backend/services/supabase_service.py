@@ -1,5 +1,6 @@
 from supabase import create_client, Client
 import os
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import uuid
@@ -14,8 +15,28 @@ def get_supabase_client() -> Client:
     
     if not supabase_url or not supabase_key:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
-    
-    return create_client(supabase_url, supabase_key)
+
+    # Some environments inject proxy-related env vars that older SDKs don't support,
+    # causing: Client.__init__() got an unexpected keyword argument 'proxy'.
+    # We handle this gracefully by retrying without proxy env vars if that error occurs.
+    try:
+        return create_client(supabase_url, supabase_key)
+    except TypeError as exc:
+        if "unexpected keyword argument 'proxy'" in str(exc):
+            # Clear proxy env vars and retry once
+            proxy_vars = [
+                "HTTP_PROXY", "http_proxy",
+                "HTTPS_PROXY", "https_proxy",
+                "ALL_PROXY", "all_proxy",
+                "NO_PROXY", "no_proxy",
+            ]
+            cleared = [name for name in proxy_vars if os.environ.pop(name, None) is not None]
+            logging.getLogger(__name__).warning(
+                "Supabase client init failed due to proxy kw; cleared env vars and retrying: %s",
+                ", ".join(cleared) or "none",
+            )
+            return create_client(supabase_url, supabase_key)
+        raise
 
 # Database operations for campaigns
 class CampaignService:
