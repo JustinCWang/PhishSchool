@@ -6,10 +6,13 @@ export default function Campaigns() {
   const { user } = useAuth()
   const [optedIn, setOptedIn] = useState(false)
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
+  const [streak] = useState<number>(0)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
+  const [canCollapse, setCanCollapse] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -37,6 +40,7 @@ export default function Campaigns() {
         } else {
           setFrequency('weekly')
         }
+        setCanCollapse(Boolean(data))
       }
       setLoading(false)
     }
@@ -83,6 +87,7 @@ export default function Campaigns() {
       return
     }
     setSaved(true)
+    setCanCollapse(true)
     setTimeout(() => setSaved(false), 3000)
   }
 
@@ -98,17 +103,42 @@ export default function Campaigns() {
         </p>
       </div>
 
-      {/* Opt-in Card */}
-      <div className="rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-blue-50 p-8 shadow-xl">
-        <div className="mb-6 flex items-center gap-4">
-          <div className="rounded-full bg-indigo-100 p-4 text-4xl">📬</div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Enable Test Campaigns</h2>
-            <p className="text-gray-600">Stay sharp with regular phishing detection practice</p>
+      {/* Daily Streak (only when frequency is daily) */}
+      {optedIn && frequency === 'daily' && (
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-3 rounded-full bg-orange-50 px-5 py-2 text-orange-700 ring-1 ring-orange-200">
+            <span className="text-xl">🔥</span>
+            <span className="font-semibold">Daily streak</span>
+            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-sm font-semibold">{streak} day{streak === 1 ? '' : 's'}</span>
           </div>
         </div>
+      )}
 
-        <div className="space-y-6">
+      {/* Opt-in Card */}
+      <div className="rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-blue-50 p-8 shadow-xl">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="rounded-full bg-indigo-100 p-4 text-4xl">📬</div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Enable Test Campaigns</h2>
+              <p className="text-gray-600">Stay sharp with regular phishing detection practice</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => canCollapse && setCollapsed(!collapsed)}
+            disabled={!canCollapse}
+            title={canCollapse ? 'Collapse/expand' : 'Select and save a preference to collapse'}
+            className={`rounded-md px-6 py-2 text-4xl font-semibold leading-none ${
+              canCollapse ? 'text-gray-700 hover:bg-white/60' : 'text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {collapsed ? '▸' : '▾'}
+          </button>
+        </div>
+
+        {!collapsed && (
+          <div className="space-y-6">
           {/* Toggle Switch */}
           <div className="flex items-center justify-between rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
@@ -174,7 +204,8 @@ export default function Campaigns() {
           {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
           {!user && !errorMessage && <p className="text-sm text-gray-600">Sign in to manage your phishing campaign preferences.</p>}
           {loading && <p className="text-sm text-gray-500">Loading preferences...</p>}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Performance Dashboard */}
