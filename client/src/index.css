@@ -59,3 +59,75 @@
 .animate-slideIn {
   animation: slideIn 0.3s ease-out;
 }
+
+/* Confetti / Oops particle animations */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 1;
+  }
+}
+
+@keyframes oopsFall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(-720deg);
+    opacity: 1;
+  }
+}
+
+.confetti-piece {
+  position: fixed;
+  top: -10vh;
+  font-size: 20px;
+  pointer-events: none;
+  will-change: transform;
+  animation: confettiFall 1.6s linear 0s forwards;
+}
+
+.oops-piece {
+  position: fixed;
+  top: -10vh;
+  font-size: 20px;
+  pointer-events: none;
+  will-change: transform;
+  animation: oopsFall 1.8s linear 0s forwards;
+}
+
+/* Local button burst */
+@keyframes burstPop {
+  0% { transform: scale(0.3); opacity: 0.8; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+.burst-emoji {
+  position: absolute;
+  font-size: 20px;
+  pointer-events: none;
+  animation: burstPop 600ms ease-out forwards;
+}
+
+/* Center overlay ring/cross animation */
+.center-burst {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.center-burst .ring-emoji,
+.center-burst .cross-emoji {
+  position: absolute;
+  font-size: 42px;
+  animation: burstPop 800ms ease-out forwards;
+}

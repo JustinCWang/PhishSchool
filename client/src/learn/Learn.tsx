@@ -37,6 +37,15 @@ export default function Learn() {
   const [leaderboard, setLeaderboard] = useState<Array<{ score_id: string; learn_correct: number; learn_attempted: number | null }>>([])
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
   const [currentUserName, setCurrentUserName] = useState<string>('')
+  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(true)
+  // Text size for rendered message content
+  const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base')
+  const [burstKey, setBurstKey] = useState<number>(0)
+  // Deprecated: left for potential future local bursts near buttons
+  // const [buttonBursts, setButtonBursts] = useState<Array<{ id: number; x: number; y: number; emoji: string }>>([])
+  const [centerBurst, setCenterBurst] = useState<{ mode: 'ring' | 'cross'; items: Array<{ id: number; x: number; y: number; emoji: string }> } | null>(null)
+  const legitBtnRef = useRef<HTMLButtonElement | null>(null)
+  const phishBtnRef = useRef<HTMLButtonElement | null>(null)
 
   // Load user stats from Supabase
   useEffect(() => {
@@ -214,6 +223,9 @@ export default function Learn() {
 	// Update stats in database
 	if (user && currentMessage) {
   	const correct = currentMessage.content_type === answer
+      // Trigger a local burst near the clicked button
+      // Show center overlay burst (ring for correct, cross for incorrect)
+      triggerCenterBurst(correct ? 'ring' : 'cross')
   	const newAttempts = learnAttempts + 1
   	const newCorrect = correct ? learnCorrect + 1 : learnCorrect
   	
@@ -254,6 +266,40 @@ export default function Learn() {
 	}
   }
 
+  // Note: previously used a local burst around buttons; replaced by center burst
+
+  function triggerCenterBurst(mode: 'ring' | 'cross') {
+    const emoji = mode === 'ring' ? '🎉' : '❌'
+    const centerX = (typeof window !== 'undefined' ? window.innerWidth : 1200) / 2
+    const centerY = (typeof window !== 'undefined' ? window.innerHeight : 800) / 2
+    const items: Array<{ id: number; x: number; y: number; emoji: string }> = []
+    if (mode === 'ring') {
+      const count = 10
+      const radius = 120
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2
+        items.push({
+          id: Date.now() + i,
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius,
+          emoji,
+        })
+      }
+    } else {
+      const offset = 140
+      // Create an X by placing emojis along two diagonals
+      const steps = 6
+      for (let i = -steps; i <= steps; i++) {
+        const dx = (i / steps) * offset
+        items.push({ id: Date.now() + i + 100, x: centerX + dx, y: centerY + dx, emoji })
+        items.push({ id: Date.now() + i + 200, x: centerX + dx, y: centerY - dx, emoji })
+      }
+    }
+    setBurstKey((k) => k + 1)
+    setCenterBurst({ mode, items })
+    setTimeout(() => setCenterBurst(null), 800)
+  }
+
   /** Whether the user's answer matches the ground truth */
   const isCorrect = () => {
 	if (!currentMessage || !userAnswer) return false
@@ -278,6 +324,23 @@ export default function Learn() {
 
   return (
 	<div className="space-y-8">
+    {/* Local burst layer (overlays near buttons) */}
+    {/* Local burst layer removed */}
+
+    {/* Center burst overlay */}
+    {centerBurst && (
+      <div className="center-burst">
+        {centerBurst.items.map((it) => (
+          <div
+            key={`${it.id}-${burstKey}`}
+            className={centerBurst.mode === 'ring' ? 'ring-emoji' : 'cross-emoji'}
+            style={{ left: `${it.x}px`, top: `${it.y}px` } as React.CSSProperties}
+          >
+            {it.emoji}
+          </div>
+        ))}
+      </div>
+    )}
   	{/* Toast Notifications */}
   	{showLoginToast && (
     	<div className="fixed top-4 right-4 z-50 animate-slideIn">
@@ -348,52 +411,72 @@ export default function Learn() {
         	</div>
       	)}
 
-      	{/* Top 10 Leaderboard */}
-      	<div className="rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-6 shadow-lg">
-        	<h2 className="text-2xl font-bold text-amber-800 text-center mb-6">🏆 Top 10 Leaderboard</h2>
-        	
-        	{loadingLeaderboard ? (
-          	<div className="text-center text-gray-600">Loading leaderboard...</div>
-        	) : leaderboard.length === 0 ? (
-          	<div className="text-center text-gray-600">No scores yet. Be the first!</div>
-        	) : (
-          	<div className="bg-white rounded-lg shadow-md overflow-hidden">
-            	<div className="divide-y divide-gray-200">
-              	{leaderboard.map((entry, index) => (
-                	<div 
-                  	key={index}
-                  	className={`flex items-center justify-between p-4 ${
-                    	index === 0 ? 'bg-gradient-to-r from-amber-100 to-yellow-100' :
-                    	index === 1 ? 'bg-gradient-to-r from-gray-100 to-slate-100' :
-                    	index === 2 ? 'bg-gradient-to-r from-orange-100 to-amber-100' :
-                    	'hover:bg-gray-50'
-                  	}`}
-                	>
-                  	<div className="flex items-center gap-4">
-                    	<div className={`text-2xl font-bold ${
-                      	index === 0 ? 'text-amber-600' :
-                      	index === 1 ? 'text-gray-600' :
-                      	index === 2 ? 'text-orange-600' :
-                      	'text-gray-400'
-                    	}`}>
-                      	#{index + 1}
-                    	</div>
-                    	<div>
-                      <div className="font-semibold text-gray-800">
-                        {entry.score_id === user?.id ? (currentUserName || 'You') : 'Anonymous'}
-                      </div>
-                    	</div>
-                  	</div>
-                  	<div className="flex items-center gap-2">
-                    	<span className="text-2xl font-bold text-green-600">{entry.learn_correct}</span>
-                    	<span className="text-sm text-gray-500">correct</span>
-                  	</div>
-                	</div>
-              	))}
-            	</div>
-          	</div>
-        	)}
-      	</div>
+		{/* Top 10 Leaderboard (collapsible) */}
+		<div className="rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-lg">
+			<button
+				type="button"
+				onClick={() => setLeaderboardCollapsed(!leaderboardCollapsed)}
+				className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-white/30"
+				aria-expanded={!leaderboardCollapsed}
+			>
+				<div className="flex items-center gap-3">
+					<span className="text-xl">🏆</span>
+					<h2 className="text-xl sm:text-2xl font-bold text-amber-800">Top 10 Leaderboard</h2>
+				</div>
+				<div className="flex items-center gap-3">
+					{userRank !== null && (
+						<span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">Your Rank: #{userRank}</span>
+					)}
+					<span className="text-2xl leading-none">{leaderboardCollapsed ? '▸' : '▾'}</span>
+				</div>
+			</button>
+
+			{!leaderboardCollapsed && (
+				<div className="mt-4">
+					{loadingLeaderboard ? (
+						<div className="text-center text-gray-600">Loading leaderboard...</div>
+					) : leaderboard.length === 0 ? (
+						<div className="text-center text-gray-600">No scores yet. Be the first!</div>
+					) : (
+						<div className="bg-white rounded-lg shadow-md overflow-hidden">
+							<div className="divide-y divide-gray-200">
+								{leaderboard.map((entry, index) => (
+									<div 
+										key={index}
+										className={`flex items-center justify-between p-4 ${
+											index === 0 ? 'bg-gradient-to-r from-amber-100 to-yellow-100' :
+											index === 1 ? 'bg-gradient-to-r from-gray-100 to-slate-100' :
+											index === 2 ? 'bg-gradient-to-r from-orange-100 to-amber-100' :
+											'hover:bg-gray-50'
+										}`}
+									>
+										<div className="flex items-center gap-4">
+											<div className={`text-2xl font-bold ${
+												index === 0 ? 'text-amber-600' :
+												index === 1 ? 'text-gray-600' :
+												index === 2 ? 'text-orange-600' :
+												'text-gray-400'
+											}`}>
+												#{index + 1}
+											</div>
+											<div>
+												<div className="font-semibold text-gray-800">
+													{entry.score_id === user?.id ? (currentUserName || 'You') : 'Anonymous'}
+												</div>
+											</div>
+										</div>
+										<div className="flex items-center gap-2">
+											<span className="text-2xl font-bold text-green-600">{entry.learn_correct}</span>
+											<span className="text-sm text-gray-500">correct</span>
+										</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+		</div>
 
       	{/* Centered Section Title */}
       	<div className="text-center">
@@ -590,15 +673,38 @@ export default function Learn() {
   	)}
  	 
   	{/* Message Display - Only show for logged-in users */}
-  	{user && isGenerating ? (
+	{user && isGenerating ? (
     	<div className="rounded-xl border border-gray-200 bg-white p-6">
       	<div className="text-center">
         	<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         	<p className="mt-2 text-gray-600">Generating message...</p>
       	</div>
     	</div>
-  	) : user && currentMessage ? (
+	) : user && currentMessage ? (
     	<div className="rounded-xl border border-gray-200 bg-white p-6">
+			{/* Content toolbar */}
+			<div className="mb-4 flex items-center justify-end gap-2">
+				<span className="text-xs text-gray-500">Text size:</span>
+				<button
+					onClick={() => setTextSize('sm')}
+					className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'sm' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+				>
+					Small
+				</button>
+				<button
+					onClick={() => setTextSize('base')}
+					className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'base' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+				>
+					Medium
+				</button>
+				<button
+					onClick={() => setTextSize('lg')}
+					className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'lg' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+				>
+					Large
+				</button>
+			</div>
+
       	<div className="mb-4">
         	<h2 className="text-lg font-semibold">
           	Practice {currentMessage.message_type.toUpperCase()} - {currentMessage.difficulty.charAt(0).toUpperCase() + currentMessage.difficulty.slice(1)} Level
@@ -620,7 +726,7 @@ export default function Learn() {
             	</p>
           	</div>
          	 
-          	<div className="mb-4 rounded-md bg-gray-50 p-4 text-sm text-gray-800 whitespace-pre-line">
+			<div className={`mb-4 rounded-md bg-gray-50 p-4 text-gray-800 whitespace-pre-line ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
             	{currentMessage.body}
           	</div>
         	</>
@@ -646,34 +752,38 @@ export default function Learn() {
             	</div>
           	</div>
          	 
-          	<div className="bg-white rounded-b-lg p-4 border border-gray-300 border-t-0">
-            	<div className="bg-blue-500 text-white rounded-2xl rounded-bl-md px-4 py-3 max-w-xs ml-auto">
-              	<p className="text-sm whitespace-pre-line">{currentMessage.message}</p>
+				<div className="bg-white rounded-b-lg p-4 border border-gray-300 border-t-0">
+					<div className="bg-blue-500 text-white rounded-2xl rounded-bl-md px-4 py-3 max-w-xs ml-auto">
+						<p className={`${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} whitespace-pre-line`}>{currentMessage.message}</p>
             	</div>
             	<p className="text-xs text-gray-400 mt-2 text-right">Delivered</p>
           	</div>
         	</div>
       	)}
      	 
-      	{!showResult ? (
-        	<div className="flex gap-3">
-          	<button
-            	onClick={() => handleAnswer('legitimate')}
-            	className="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
-          	>
-            	Legitimate
-          	</button>
-          	<button
-            	onClick={() => handleAnswer('phishing')}
-            	className="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
-          	>
-            	Phishing
-          	</button>
-        	</div>
-      	) : (
+		{!showResult ? (
+			<div className="mt-2 flex items-center justify-center gap-4">
+          <button
+            ref={legitBtnRef}
+            onClick={() => handleAnswer('legitimate')}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 text-base font-semibold text-white shadow-md ring-1 ring-emerald-300 transition-all hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
+				>
+            <span>✅</span>
+					<span>Legitimate</span>
+				</button>
+				<button
+					onClick={() => handleAnswer('phishing')}
+            ref={phishBtnRef}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-pink-600 px-6 py-3 text-base font-semibold text-white shadow-md ring-1 ring-red-300 transition-all hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-400"
+				>
+            <span>🚩</span>
+					<span>Phishing</span>
+				</button>
+			</div>
+		) : (
         	<div className="space-y-4">
-          	{/* Result Display */}
-          	<div className={`p-4 rounded-md ${isCorrect() ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          {/* Result Display */}
+          <div className={`p-4 rounded-md ${isCorrect() ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             	<div className="flex items-center gap-2">
               	{isCorrect() ? (
                 	<>
@@ -687,38 +797,41 @@ export default function Learn() {
                 	</>
               	)}
             	</div>
-            	<p className={`mt-2 text-sm ${isCorrect() ? 'text-green-700' : 'text-red-700'}`}>
+            <p className={`mt-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} ${isCorrect() ? 'text-green-700' : 'text-red-700'}`}>
               	This message is <strong>{currentMessage.content_type}</strong>.
             	</p>
           	</div>
 
           	{/* Explanation */}
-          	{currentMessage.explanation && (
-            	<div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-              	<h4 className="font-semibold text-blue-800 mb-2">Explanation:</h4>
-              	<p className="text-sm text-blue-700">{currentMessage.explanation}</p>
-            	</div>
-          	)}
+          {currentMessage.explanation && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <h4 className="font-semibold text-blue-800 mb-2">Explanation:</h4>
+              <p className={`${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} text-blue-700`}>{currentMessage.explanation}</p>
+            </div>
+          )}
 
           	{/* Phishing Indicators */}
-          	{currentMessage.phishing_indicators && currentMessage.phishing_indicators.length > 0 && (
-            	<div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              	<h4 className="font-semibold text-yellow-800 mb-2">Phishing Indicators:</h4>
-              	<ul className="text-sm text-yellow-700 space-y-1">
-                	{currentMessage.phishing_indicators.map((indicator, index) => (
-                  	<li key={index}>• {indicator}</li>
-                	))}
-              	</ul>
-            	</div>
-          	)}
+          {currentMessage.phishing_indicators && currentMessage.phishing_indicators.length > 0 && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <h4 className="font-semibold text-yellow-800 mb-2">Phishing Indicators:</h4>
+              <ul className={`${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} text-yellow-700 space-y-1`}>
+                {currentMessage.phishing_indicators.map((indicator, index) => (
+                  <li key={index}>• {indicator}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           	{/* Next Message Button */}
-          	<button
-            	onClick={generateNextMessage}
-            	className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          	>
-            	Practice with Another Message
-          	</button>
+			<div className="flex justify-center">
+				<button
+					onClick={generateNextMessage}
+					className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 text-base font-semibold text-white shadow-md ring-1 ring-blue-300 transition-all hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+				>
+					<span>🔁</span>
+					<span>Practice with Another Message</span>
+				</button>
+			</div>
         	</div>
       	)}
     	</div>
