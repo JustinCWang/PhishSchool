@@ -32,11 +32,12 @@ export default function Phished() {
 
       const current = typeof data?.num_fished === 'number' ? data.num_fished : 0
 
-      const { error: upsertErr } = await supabase
+      const { error: updateErr } = await supabase
         .from('Users')
-        .upsert({ user_id: user.id, num_fished: current + 1 }, { onConflict: 'user_id' })
+        .update({ num_fished: current + 1 })
+        .eq('user_id', user.id)
 
-      if (upsertErr) throw upsertErr
+      if (updateErr) throw updateErr
 
       navigate('/learn')
     } catch (e) {

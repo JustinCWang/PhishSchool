@@ -7,7 +7,7 @@ export default function Campaigns() {
   const { user } = useAuth()
   const [optedIn, setOptedIn] = useState(false)
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
-  const [streak] = useState<number>(0)
+  const [numFished, setNumFished] = useState<number>(0)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -29,7 +29,7 @@ export default function Campaigns() {
       setLoading(true)
       const { data, error } = await supabase
         .from('Users')
-        .select('opted_in, frequency')
+        .select('opted_in, frequency, num_fished')
         .eq('user_id', user.id)
         .maybeSingle()
       if (!isMounted) return
@@ -44,6 +44,7 @@ export default function Campaigns() {
           setFrequency('weekly')
         }
         setCanCollapse(Boolean(data))
+        setNumFished(typeof data?.num_fished === 'number' ? data.num_fished : 0)
       }
       setLoading(false)
     }
@@ -127,13 +128,13 @@ export default function Campaigns() {
         </p>
       </div>
 
-      {/* Daily Streak (only when frequency is daily) */}
-      {optedIn && frequency === 'daily' && (
+      {/* Times Phished Badge */}
+      {optedIn && (
         <div className="flex justify-center">
-          <div className="inline-flex items-center gap-3 rounded-full bg-orange-50 px-5 py-2 text-orange-700 ring-1 ring-orange-200">
-            <span className="text-xl">🔥</span>
-            <span className="font-semibold">Daily streak</span>
-            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-sm font-semibold">{streak} day{streak === 1 ? '' : 's'}</span>
+          <div className="inline-flex items-center gap-3 rounded-full bg-indigo-50 px-5 py-2 text-indigo-700 ring-1 ring-indigo-200">
+            <span className="text-xl">🎣</span>
+            <span className="font-semibold">Times phished</span>
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-sm font-semibold">{numFished}</span>
           </div>
         </div>
       )}
