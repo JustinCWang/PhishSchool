@@ -4,3 +4,4 @@ python-multipart==0.0.6
 python-dotenv==1.0.0
 google-generativeai==0.8.5
 sendgrid==6.12.5
+supabase==2.4.0
