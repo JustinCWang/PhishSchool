@@ -43,7 +43,7 @@ function Navbar() {
 /** Default page layout wrapper with main outlet */
 export default function Layout() {
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-white to-gray-400 text-gray-900">
+    <div className="min-h-dvh bg-gradient-to-b from-sky-50 via-blue-100 to-cyan-100 text-gray-900">
       <Navbar />
       <main className="w-full px-8 py-8">
         <Outlet />
