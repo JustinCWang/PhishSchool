@@ -1,6 +1,13 @@
+/**
+ * App layout and navigation.
+ *
+ * Provides a top navigation bar that reflects auth state and an outlet for
+ * nested page routes.
+ */
 import { Outlet, Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
+/** Top navigation bar with auth-aware actions */
 function Navbar() {
   const { user, signOut } = useAuth()
   return (
@@ -33,6 +40,7 @@ function Navbar() {
   )
 }
 
+/** Default page layout wrapper with main outlet */
 export default function Layout() {
   return (
     <div className="min-h-dvh bg-gradient-to-b from-white to-gray-400 text-gray-900">

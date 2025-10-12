@@ -1,8 +1,15 @@
+/**
+ * Phished landing page.
+ *
+ * Shown after a simulated phishing click. Lets the user acknowledge the
+ * event and increments a counter in the `Users` table.
+ */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/useAuth'
 
+/** Acknowledge-and-continue component for simulated phish events */
 export default function Phished() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -13,6 +20,7 @@ export default function Phished() {
     // No-op; we increment only when user clicks the button
   }, [])
 
+  /** Increment the user's `num_fished` metric and redirect to Learn */
   const handleAcknowledge = async () => {
     setError(null)
     if (!user) {

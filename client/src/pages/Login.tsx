@@ -1,7 +1,14 @@
+/**
+ * Login page.
+ *
+ * Renders a simple email/password sign-in form and redirects to the
+ * intended route on success.
+ */
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
+/** Login form component */
 export default function Login() {
   const { signInWithEmail } = useAuth()
   const navigate = useNavigate()
@@ -14,6 +21,7 @@ export default function Login() {
   // Get the redirect URL from query parameters, default to home page
   const redirectTo = new URLSearchParams(location.search).get('redirect') || '/'
 
+  /** Handle form submission by attempting sign-in then navigating */
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)

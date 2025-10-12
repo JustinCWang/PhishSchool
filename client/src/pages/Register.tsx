@@ -1,7 +1,14 @@
+/**
+ * Registration page.
+ *
+ * Creates a new account with email/password and basic profile info, then
+ * prompts the user to verify their email.
+ */
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
+/** Registration form component */
 export default function Register() {
   const { signUpWithEmail } = useAuth()
   const navigate = useNavigate()
@@ -12,6 +19,7 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  /** Handle registration and redirect to home */
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)

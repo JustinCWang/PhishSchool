@@ -1,7 +1,14 @@
+/**
+ * Profile page.
+ *
+ * Lets the user view and update profile data stored in the `Users` table and
+ * optionally sync their auth email.
+ */
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { supabase } from '../lib/supabase'
 
+/** Profile editor form */
 export default function Profile() {
   const { user } = useAuth()
   const [email, setEmail] = useState('')
@@ -10,6 +17,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
+  /** Load profile details for the authenticated user */
   useEffect(() => {
     let isMounted = true
     async function load() {
@@ -34,6 +42,7 @@ export default function Profile() {
     }
   }, [user])
 
+  /** Save profile to database and optionally update auth email */
   async function onSave(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return

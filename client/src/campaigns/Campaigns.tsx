@@ -1,8 +1,15 @@
+/**
+ * Campaign preferences and performance dashboard.
+ *
+ * Lets users opt into periodic simulated phishing emails, select frequency,
+ * trigger an immediate test email, and view basic performance stats.
+ */
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { sendPhishingNow } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
+/** Campaigns control panel component */
 export default function Campaigns() {
   const { user } = useAuth()
   const [optedIn, setOptedIn] = useState(false)
@@ -17,6 +24,7 @@ export default function Campaigns() {
   const [collapsed, setCollapsed] = useState(false)
   const [canCollapse, setCanCollapse] = useState(false)
 
+  /** Load persisted preferences from Supabase */
   useEffect(() => {
     let isMounted = true
     async function loadPreferences() {
@@ -54,6 +62,7 @@ export default function Campaigns() {
     }
   }, [user])
 
+  /** Persist current campaign preferences to Supabase */
   const handleSave = async () => {
     if (!user) {
       setErrorMessage('You need to be signed in to save preferences.')
@@ -95,6 +104,7 @@ export default function Campaigns() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  /** Call backend endpoint to trigger an immediate training email */
   const handleSendNow = async () => {
     if (!user) {
       setErrorMessage('You need to be signed in to send a test email.')

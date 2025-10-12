@@ -1,8 +1,15 @@
+/**
+ * Learn practice experience.
+ *
+ * Generates phishing or legitimate messages, records user answers and stats,
+ * shows a leaderboard, and provides an interactive training flow.
+ */
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
 import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
+/** Main Learn page component */
 export default function Learn() {
   const { user, loading } = useAuth()
   const [currentMessage, setCurrentMessage] = useState<GeneratedMessageResponse | null>(null)
@@ -156,6 +163,7 @@ export default function Learn() {
     }
   }, [user, loading])
 
+  /** Generate a new message with the specified parameters */
   const generateNewMessage = async (contentType: 'phishing' | 'legitimate', difficulty: 'easy' | 'medium' | 'hard' = 'medium', messageType?: 'email' | 'sms', theme?: string) => {
 	try {
   	setIsGenerating(true)
@@ -179,6 +187,7 @@ export default function Learn() {
 	}
   }
 
+  /** Generate a random practice message */
   const generateRandomPracticeMessage = async () => {
 	try {
   	setIsGenerating(true)
@@ -197,6 +206,7 @@ export default function Learn() {
 	}
   }
 
+  /** Record the user's answer, update stats, refresh leaderboard and rank */
   const handleAnswer = async (answer: 'phishing' | 'legitimate') => {
 	setUserAnswer(answer)
 	setShowResult(true)
@@ -244,11 +254,13 @@ export default function Learn() {
 	}
   }
 
+  /** Whether the user's answer matches the ground truth */
   const isCorrect = () => {
 	if (!currentMessage || !userAnswer) return false
 	return currentMessage.content_type === userAnswer
   }
 
+  /** Helper to quickly get a new random message */
   const generateNextMessage = async () => {
 	await generateRandomPracticeMessage()
   }

@@ -1,3 +1,8 @@
+/**
+ * App routes configuration.
+ *
+ * Declares all top-level routes and nests them under the shared `Layout`.
+ */
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './components/Home'
@@ -9,6 +14,9 @@ import Register from './pages/Register.tsx'
 import Profile from './pages/Profile.tsx'
 import Phished from './pages/Phished.tsx'
 
+/**
+ * App: Route switch component containing all pages of the application.
+ */
 function App() {
   return (
     <Routes>

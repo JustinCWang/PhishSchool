@@ -1,5 +1,12 @@
+/**
+ * API utilities and types.
+ *
+ * Provides a normalized API base URL, an authenticated fetch wrapper, and
+ * strongly-typed helpers for message generation, campaigns, and uploads.
+ */
 import { supabase } from './supabase'
 
+/** Ensure Vercel-hosted URLs include `/api` and strip trailing slash */
 function normalizeApiBaseUrl(raw?: string): string {
   const fallback = 'https://phishschoolbackend.vercel.app/api'
   const base = (raw && String(raw).trim()) || fallback
@@ -20,6 +27,7 @@ function normalizeApiBaseUrl(raw?: string): string {
 
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
+/** Fetch wrapper that injects the Supabase access token if available */
 export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
   const {
     data: { session },
@@ -65,6 +73,7 @@ export interface GeneratedMessageResponse {
 }
 
 // Message generation API functions
+/** Call backend to generate a message with specified parameters */
 export async function generateMessage(request: MessageGenerationRequest): Promise<GeneratedMessageResponse> {
   const response = await fetch(`${API_BASE_URL}/generate/message`, {
     method: 'POST',
@@ -82,6 +91,7 @@ export async function generateMessage(request: MessageGenerationRequest): Promis
   return response.json()
 }
 
+/** Call backend to generate a random message */
 export async function generateRandomMessage(): Promise<GeneratedMessageResponse> {
   const response = await fetch(`${API_BASE_URL}/generate/random`, {
     method: 'POST',
@@ -107,6 +117,7 @@ export interface SendPhishingNowResponse {
   message: string
 }
 
+/** Trigger immediate phishing email generation to the current user */
 export async function sendPhishingNow(req: SendPhishingNowRequest): Promise<SendPhishingNowResponse> {
   const response = await fetch(`${API_BASE_URL}/email/send-phishing-now`, {
     method: 'POST',
@@ -142,6 +153,7 @@ export interface EmailAnalysisResponse {
   }
 }
 
+/** Upload an email file to the backend for phishing risk analysis */
 export async function analyzeEmail(file: File): Promise<EmailAnalysisResponse> {
   const formData = new FormData()
   formData.append('file', file)

@@ -1,3 +1,9 @@
+/**
+ * Phishing detector tool.
+ *
+ * Upload `.eml` files or screenshots to analyze with the backend and render
+ * a risk level with details.
+ */
 import { useState } from 'react'
 import { API_BASE_URL } from '../lib/api'
 
@@ -16,6 +22,7 @@ type DetectorResult = {
 }
 
 
+/** File upload and analysis UI */
 export default function Detector() {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -24,6 +31,7 @@ export default function Detector() {
   const [isDragging, setIsDragging] = useState(false)
 
 
+  /** Handle manual file picker changes */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
@@ -33,17 +41,20 @@ export default function Detector() {
   }
 
 
+  /** Visual drag-over styling */
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
   }
 
 
+  /** Reset drag-over state */
   const handleDragLeave = () => {
     setIsDragging(false)
   }
 
 
+  /** Accept dropped files and validate extension */
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
@@ -64,6 +75,7 @@ export default function Detector() {
   }
 
 
+  /** POST the file to the backend and transform response */
   const handleAnalyze = async () => {
     if (!file) {
       setError('Please select a file first')

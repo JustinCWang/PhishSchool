@@ -1,6 +1,13 @@
+/**
+ * Home page.
+ *
+ * Hero content with typewriter intro, quick links to key features, and
+ * animated entry for the detector section.
+ */
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
+/** Home landing component */
 export default function Home() {
   const [typedText, setTypedText] = useState<string>('')
   const [showDetector, setShowDetector] = useState<boolean>(false)
@@ -8,6 +15,7 @@ export default function Home() {
   
   const fullText = "Over 3.4 billion phishing emails are sent every day. 90% of data breaches start with a phishing attack. In 2024, organizations faced an average of 1,265 phishing attacks per month. Don't become a statistic—protect yourself"
 
+  /** Typewriter effect for intro paragraph */
   useEffect(() => {
     let index = 0
     // Show detector after 2 seconds regardless of typing completion
