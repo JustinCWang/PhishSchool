@@ -1,6 +1,24 @@
 import { supabase } from './supabase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://phishschoolbackend.vercel.app/api'
+function normalizeApiBaseUrl(raw?: string): string {
+  const fallback = 'https://phishschoolbackend.vercel.app/api'
+  const base = (raw && String(raw).trim()) || fallback
+  try {
+    const url = new URL(base)
+    const isVercel = url.hostname.endsWith('vercel.app')
+    const hasApiPrefix = url.pathname.replace(/\/+$/, '').split('/').filter(Boolean)[0] === 'api'
+    if (isVercel && !hasApiPrefix) {
+      url.pathname = `/api${url.pathname}`
+    }
+    // remove trailing slash for consistent concatenation
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    // If it's not a full URL, just return as-is (developer can pass a proxy path)
+    return base.replace(/\/$/, '')
+  }
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL)
 
 export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
   const {
