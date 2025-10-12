@@ -135,7 +135,7 @@ export default function Detector() {
     <div className="mx-auto max-w-4xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
+        <h1 className="bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
           <span>Phishing Detector</span>
           <img src="/phishschoolicon.png" alt="PhishSchool Icon" className="h-12 w-auto object-contain" />
         </h1>
@@ -153,8 +153,8 @@ export default function Detector() {
           onDrop={handleDrop}
           className={`relative rounded-xl border-3 border-dashed p-12 text-center transition-all ${
             isDragging
-              ? 'border-indigo-500 bg-indigo-50'
-              : 'border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50/50'
+              ? 'border-red-500 bg-red-50'
+              : 'border-gray-300 bg-gray-50 hover:border-red-400 hover:bg-red-50/50'
           }`}
         >
           <input
@@ -174,12 +174,12 @@ export default function Detector() {
             </p>
           </label>
           {file && (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700">
               <span>📎</span>
               <span>{file.name}</span>
               <button
                 onClick={() => setFile(null)}
-                className="ml-2 text-indigo-500 hover:text-indigo-700"
+                className="ml-2 text-red-500 hover:text-red-700"
               >
                 ✕
               </button>
@@ -192,7 +192,7 @@ export default function Detector() {
           type="button"
           onClick={handleAnalyze}
           disabled={loading || !file}
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          className="mt-6 w-full rounded-xl bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">

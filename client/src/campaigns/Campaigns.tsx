@@ -148,7 +148,7 @@ export default function Campaigns() {
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-      <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
+      <h1 className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
           <span>Training Campaigns</span>
           <img src="/CampaignFish.png" alt="Campaign Fish" className="h-18 w-auto object-contain" />
         </h1>
@@ -160,10 +160,10 @@ export default function Campaigns() {
       {/* Removed top badge; moved metrics into Performance section */}
 
       {/* Opt-in Card */}
-      <div className="rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-blue-50 p-8 shadow-xl">
+      <div className="rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-orange-50 p-8 shadow-xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-indigo-100 p-4 text-4xl">📬</div>
+            <div className="rounded-full bg-orange-100 p-4 text-4xl">📬</div>
             <div>
               <h2 className="text-2xl font-bold text-gray-800">Enable Test Campaigns</h2>
               <p className="text-gray-600">Stay sharp with regular phishing detection practice</p>
@@ -187,7 +187,7 @@ export default function Campaigns() {
           {/* Toggle Switch */}
           <div className="flex items-center justify-between rounded-xl bg-white p-6 shadow-md">
             <div className="flex items-center gap-3">
-              <input type="checkbox" id="opt-in-toggle" checked={optedIn} onChange={(e) => setOptedIn(e.target.checked)} disabled={!user || loading || saving} className="h-6 w-6 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50" />
+              <input type="checkbox" id="opt-in-toggle" checked={optedIn} onChange={(e) => setOptedIn(e.target.checked)} disabled={!user || loading || saving} className="h-6 w-6 rounded border-gray-300 text-orange-600 focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-50" />
               <label htmlFor="opt-in-toggle" className="cursor-pointer">
                 <div className="font-semibold text-gray-800">
                   Receive test phishing emails
@@ -200,7 +200,7 @@ export default function Campaigns() {
             <div
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 optedIn
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-orange-100 text-orange-700'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
@@ -215,17 +215,17 @@ export default function Campaigns() {
                 Email Frequency
               </label>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <button onClick={() => setFrequency('daily')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'daily' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
+                <button onClick={() => setFrequency('daily')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'daily' ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
                   <div className="mb-1 text-2xl">🌅</div>
                   <div className="font-semibold text-gray-800">Daily</div>
                   <div className="text-xs text-gray-500">Most practice</div>
                 </button>
-                <button onClick={() => setFrequency('weekly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'weekly' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
+                <button onClick={() => setFrequency('weekly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'weekly' ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
                   <div className="mb-1 text-2xl">📅</div>
                   <div className="font-semibold text-gray-800">Weekly</div>
                   <div className="text-xs text-gray-500">Recommended</div>
                 </button>
-                <button onClick={() => setFrequency('monthly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'monthly' ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
+                <button onClick={() => setFrequency('monthly')} disabled={saving} className={`rounded-lg border-2 p-4 text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 ${frequency === 'monthly' ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
                   <div className="mb-1 text-2xl">🗓️</div>
                   <div className="font-semibold text-gray-800">Monthly</div>
                   <div className="text-xs text-gray-500">Light practice</div>
@@ -264,7 +264,7 @@ export default function Campaigns() {
         </div>
 
         {/* Send Now CTA */}
-        <div className="mb-6 flex flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-indigo-50 to-cyan-50 p-6 text-center ring-1 ring-indigo-100">
+        <div className="mb-6 flex flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 p-6 text-center ring-1 ring-orange-100">
           <div className="text-gray-700">
             Instantly trigger a simulated phishing email to your inbox.
           </div>
@@ -272,7 +272,7 @@ export default function Campaigns() {
             type="button"
             onClick={handleSendNow}
             disabled={!user || sendingNow}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 px-6 py-3 text-lg font-semibold text-white shadow-lg ring-1 ring-indigo-300 transition-all hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-3 text-lg font-semibold text-white shadow-lg ring-1 ring-orange-300 transition-all hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {sendingNow ? 'Sending…' : (
               <span className="inline-flex items-center gap-2">

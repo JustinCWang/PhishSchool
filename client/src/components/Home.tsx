@@ -51,7 +51,7 @@ export default function Home() {
         <p className="mt-2 text-lg text-gray-600">Learn to spot phishing, test emails and images, and run training campaigns.</p>
         
         <div className="mt-6 max-w-3xl mx-auto min-h-[120px]">
-          <p className="text-sm text-gray-700 leading-relaxed">
+          <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
             {typedText}
             {typedText.length < fullText.length && (
               <span className="inline-block w-0.5 h-4 bg-blue-600 ml-1 animate-pulse" aria-hidden="true"></span>
@@ -125,13 +125,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Other Sections */}
+      {/* Feature Cards */}
       <div 
-        className={`grid gap-6 sm:grid-cols-2 w-full transition-all duration-1000 ease-out ${
+        className={`grid gap-6 w-full sm:grid-cols-1 md:grid-cols-3 transition-all duration-1000 ease-out ${
           showOtherSections ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
         }`}
       >
-        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border-1 border-black flex flex-col items-center text-center">
+        {/* Learn - Blue */}
+        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col items-center text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,20 +144,80 @@ export default function Home() {
           <p className="mb-4 text-sm text-gray-600">Practice on realistic emails and decide: safe or phishing?</p>
           <Link to="/learn" className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Start Learning →</Link>
         </div>
-        
-        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border-1 border-black flex flex-col items-center text-center">
+
+        {/* Detector - Red */}
+        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col items-center text-center">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m2-4h-2m-7 8a9 9 0 1118 0A9 9 0 013 12z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Detector</h2>
+          </div>
+          <p className="mb-4 text-sm text-gray-600">Upload emails or screenshots to analyze phishing risk instantly.</p>
+          <Link to="/detector" className="inline-flex items-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors">Open Detector →</Link>
+        </div>
+
+        {/* Campaigns - Orange */}
+        <div className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
           </div>
           <p className="mb-4 text-sm text-gray-600">Opt-in to periodic test phishing emails and track your progress.</p>
-          <Link to="/campaigns" className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">Manage Campaigns →</Link>
+          <Link to="/campaigns" className="inline-flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors">Manage Campaigns →</Link>
         </div>
       </div>
+
+      {/* Why Phishing Matters */}
+      <section className={`w-full rounded-2xl bg-gradient-to-br from-sky-50 to-cyan-50 p-8 shadow-sm transition-all duration-1000 ease-out ${showOtherSections ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Why Phishing Matters</h2>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="text-blue-600 text-2xl mb-2">🎯</div>
+            <p className="text-gray-700 text-sm">Phishing is the most common initial attack vector leading to breaches.</p>
+          </div>
+          <div className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="text-blue-600 text-2xl mb-2">⚡</div>
+            <p className="text-gray-700 text-sm">Modern attacks are highly convincing—training helps build intuition.</p>
+          </div>
+          <div className="rounded-xl bg-white p-5 border border-gray-100">
+            <div className="text-blue-600 text-2xl mb-2">🛡️</div>
+            <p className="text-gray-700 text-sm">Proactive awareness dramatically reduces risk across people and orgs.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Stats */}
+      <section className={`w-full transition-all duration-1000 ease-out ${showOtherSections ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100 text-center">
+            <div className="text-3xl font-extrabold text-gray-900">3.4B+</div>
+            <div className="text-sm text-gray-600">phishing emails sent each day</div>
+          </div>
+          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100 text-center">
+            <div className="text-3xl font-extrabold text-gray-900">90%</div>
+            <div className="text-sm text-gray-600">of breaches begin with phishing</div>
+          </div>
+          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-100 text-center">
+            <div className="text-3xl font-extrabold text-gray-900">1,265/mo</div>
+            <div className="text-sm text-gray-600">avg. attacks per org in 2024</div>
+          </div>
+        </div>
+      </section>
+
+      {/* About Us (placeholder) */}
+      <section className={`w-full rounded-2xl bg-white p-8 shadow-sm border border-gray-100 transition-all duration-1000 ease-out ${showOtherSections ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">About Us</h2>
+        <p className="text-gray-700 text-sm">We&apos;ll add our team story and mission here soon. Check back for more!</p>
+      </section>
+
+      {/* Footer moved to global Layout */}
     </div>
   )
 }
