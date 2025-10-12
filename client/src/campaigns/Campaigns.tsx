@@ -15,6 +15,7 @@ export default function Campaigns() {
   const [optedIn, setOptedIn] = useState(false)
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [numFished, setNumFished] = useState<number>(0)
+  const [numSent, setNumSent] = useState<number>(0)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -37,7 +38,7 @@ export default function Campaigns() {
       setLoading(true)
       const { data, error } = await supabase
         .from('Users')
-        .select('opted_in, frequency, num_fished')
+        .select('opted_in, frequency, num_fished, num_sent')
         .eq('user_id', user.id)
         .maybeSingle()
       if (!isMounted) return
@@ -54,6 +55,7 @@ export default function Campaigns() {
         }
         setCanCollapse(Boolean(data))
         setNumFished(typeof data?.num_fished === 'number' ? data.num_fished : 0)
+        setNumSent(typeof data?.num_sent === 'number' ? data.num_sent : 0)
       }
       setLoading(false)
     }
@@ -122,6 +124,17 @@ export default function Campaigns() {
     try {
       const res = await sendPhishingNow({ user_id: user.id })
       setSendNowMessage(res.message || 'Email sent!')
+      // Optimistically increment num_sent in UI and persist to Supabase
+      setNumSent((prev) => prev + 1)
+      void supabase
+        .from('Users')
+        .update({ num_sent: (numSent || 0) + 1 })
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Failed to increment num_sent:', error.message)
+          }
+        })
     } catch (err) {
       const e = err as Error
       setErrorMessage(e.message || 'Failed to send email')
@@ -144,16 +157,7 @@ export default function Campaigns() {
         </p>
       </div>
 
-      {/* Times Phished Badge */}
-      {optedIn && (
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-3 rounded-full bg-indigo-50 px-5 py-2 text-indigo-700 ring-1 ring-indigo-200">
-            <span className="text-xl">🎣</span>
-            <span className="font-semibold">Times phished</span>
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-sm font-semibold">{numFished}</span>
-          </div>
-        </div>
-      )}
+      {/* Removed top badge; moved metrics into Performance section */}
 
       {/* Opt-in Card */}
       <div className="rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-white to-blue-50 p-8 shadow-xl">
@@ -260,7 +264,7 @@ export default function Campaigns() {
         </div>
 
         {/* Send Now CTA */}
-        <div className="mb-6 flex flex-col items-start gap-3 rounded-xl bg-gradient-to-r from-indigo-50 to-cyan-50 p-6 ring-1 ring-indigo-100">
+        <div className="mb-6 flex flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-indigo-50 to-cyan-50 p-6 text-center ring-1 ring-indigo-100">
           <div className="text-gray-700">
             Instantly trigger a simulated phishing email to your inbox.
           </div>
@@ -268,34 +272,43 @@ export default function Campaigns() {
             type="button"
             onClick={handleSendNow}
             disabled={!user || sendingNow}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 px-6 py-3 text-lg font-semibold text-white shadow-lg ring-1 ring-indigo-300 transition-all hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {sendingNow ? 'Sending…' : 'Send Test Email Now'}
+            {sendingNow ? 'Sending…' : (
+              <span className="inline-flex items-center gap-2">
+                <span>✉️</span>
+                <span>Send Test Email Now</span>
+              </span>
+            )}
           </button>
           {sendNowMessage && <p className="text-sm text-green-700">{sendNowMessage}</p>}
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Real metrics */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          {/* Emails Sent */}
           <div className="rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 p-6 text-white shadow-lg">
             <div className="mb-2 text-2xl">📧</div>
-            <div className="text-3xl font-bold">0</div>
-            <div className="text-sm opacity-90">Emails Received</div>
+            <div className="text-3xl font-bold">{numSent}</div>
+            <div className="text-sm opacity-90">Emails Sent</div>
           </div>
-          <div className="rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 p-6 text-white shadow-lg">
-            <div className="mb-2 text-2xl">✅</div>
-            <div className="text-3xl font-bold">0</div>
-            <div className="text-sm opacity-90">Correctly Identified</div>
-          </div>
+          {/* Times Phished */}
           <div className="rounded-xl bg-gradient-to-br from-red-500 to-pink-500 p-6 text-white shadow-lg">
             <div className="mb-2 text-2xl">🎣</div>
-            <div className="text-3xl font-bold">0</div>
-            <div className="text-sm opacity-90">Phishing Attempts</div>
+            <div className="text-3xl font-bold">{numFished}</div>
+            <div className="text-sm opacity-90">Times Phished</div>
           </div>
+          {/* Phished Rate */}
+          <div className="rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 p-6 text-white shadow-lg">
+            <div className="mb-2 text-2xl">📈</div>
+            <div className="text-3xl font-bold">{numSent > 0 ? `${Math.round((numFished / numSent) * 100)}%` : '—%'}</div>
+            <div className="text-sm opacity-90">Phished Rate</div>
+          </div>
+          {/* Coming Soon */}
           <div className="rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 p-6 text-white shadow-lg">
-            <div className="mb-2 text-2xl">⭐</div>
-            <div className="text-3xl font-bold">—%</div>
-            <div className="text-sm opacity-90">Success Rate</div>
+            <div className="mb-2 text-2xl">🛠️</div>
+            <div className="text-3xl font-bold">Coming Soon</div>
+            <div className="text-sm opacity-90">More detailed analytics</div>
           </div>
         </div>
 
