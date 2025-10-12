@@ -1,8 +1,6 @@
-# FastAPI and server
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
-
-# Add your dependencies here as needed:
 python-dotenv==1.0.0
 google-generativeai==0.8.5
+sendgrid==6.12.5
