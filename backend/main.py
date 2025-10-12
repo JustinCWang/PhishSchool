@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import phishing, training, uploads, generate
+from routers import phishing, training, uploads, generate, email
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -24,6 +24,7 @@ app.include_router(phishing.router, prefix="/api/phishing", tags=["phishing"])
 app.include_router(training.router, prefix="/api/training", tags=["training"])
 app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
 app.include_router(generate.router, prefix="/api/generate", tags=["generate"])
+app.include_router(email.router, prefix="/api/email", tags=["email"])
 
 @app.get("/")
 async def root():

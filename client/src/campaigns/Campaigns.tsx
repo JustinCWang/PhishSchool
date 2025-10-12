@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/useAuth'
+import { sendPhishingNow } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
 export default function Campaigns() {
@@ -11,6 +12,8 @@ export default function Campaigns() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [sendingNow, setSendingNow] = useState(false)
+  const [sendNowMessage, setSendNowMessage] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [canCollapse, setCanCollapse] = useState(false)
 
@@ -89,6 +92,26 @@ export default function Campaigns() {
     setSaved(true)
     setCanCollapse(true)
     setTimeout(() => setSaved(false), 3000)
+  }
+
+  const handleSendNow = async () => {
+    if (!user) {
+      setErrorMessage('You need to be signed in to send a test email.')
+      return
+    }
+    setSendingNow(true)
+    setSendNowMessage(null)
+    setErrorMessage(null)
+    try {
+      const res = await sendPhishingNow({ user_id: user.id })
+      setSendNowMessage(res.message || 'Email sent!')
+    } catch (err) {
+      const e = err as Error
+      setErrorMessage(e.message || 'Failed to send email')
+    } finally {
+      setSendingNow(false)
+      setTimeout(() => setSendNowMessage(null), 4000)
+    }
   }
 
   return (
@@ -216,6 +239,22 @@ export default function Campaigns() {
             <h2 className="text-2xl font-bold text-gray-800">Your Performance</h2>
             <p className="text-gray-600">Track your phishing detection success rate</p>
           </div>
+        </div>
+
+        {/* Send Now CTA */}
+        <div className="mb-6 flex flex-col items-start gap-3 rounded-xl bg-gradient-to-r from-indigo-50 to-cyan-50 p-6 ring-1 ring-indigo-100">
+          <div className="text-gray-700">
+            Instantly trigger a simulated phishing email to your inbox.
+          </div>
+          <button
+            type="button"
+            onClick={handleSendNow}
+            disabled={!user || sendingNow}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sendingNow ? 'Sending…' : 'Send Test Email Now'}
+          </button>
+          {sendNowMessage && <p className="text-sm text-green-700">{sendNowMessage}</p>}
         </div>
 
         {/* Stats Grid */}

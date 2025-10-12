@@ -77,6 +77,35 @@ export async function generateRandomMessage(): Promise<GeneratedMessageResponse>
   return response.json()
 }
 
+// Campaign/email API functions
+export interface SendPhishingNowRequest {
+  user_id: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  theme?: string
+}
+
+export interface SendPhishingNowResponse {
+  success: boolean
+  message: string
+}
+
+export async function sendPhishingNow(req: SendPhishingNowRequest): Promise<SendPhishingNowResponse> {
+  const response = await fetch(`${API_BASE_URL}/email/send-phishing-now`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(req),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to send phishing email')
+  }
+
+  return response.json()
+}
+
 // Email analysis API functions (for uploaded files)
 export interface EmailAnalysisRequest {
   file: File
