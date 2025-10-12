@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import uploads, generate, email, tracking
+from routers import uploads, generate, email
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -30,7 +30,6 @@ for base_prefix in ("", "/api"):
     app.include_router(uploads.router, prefix=f"{base_prefix}/uploads", tags=["uploads"])  
     app.include_router(generate.router, prefix=f"{base_prefix}/generate", tags=["generate"])  
     app.include_router(email.router, prefix=f"{base_prefix}/email", tags=["email"])  
-    app.include_router(tracking.router, prefix=base_prefix, tags=["tracking"])  # exposes /track/* and /api/track/*
 
 @app.get("/")
 async def root():

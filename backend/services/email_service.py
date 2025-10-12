@@ -6,10 +6,6 @@ from sendgrid.helpers.mail import (
     Email,
     To,
     Content,
-    TrackingSettings,
-    ClickTracking,
-    OpenTracking,
-    CustomArg,
 )
 from typing import Dict, Any, Optional
 import logging
@@ -41,7 +37,6 @@ class EmailService:
         subject: str,
         html_content: str,
         plain_content: Optional[str] = None,
-        tracking_id: Optional[str] = None
     ) -> bool:
         """
         Send an email using SendGrid
@@ -72,15 +67,7 @@ class EmailService:
             # Create the mail object
             mail = Mail(from_email, to_email_obj, subject, content)
             
-            # Add tracking if provided
-            if tracking_id:
-                tracking_settings = TrackingSettings()
-                tracking_settings.click_tracking = ClickTracking(True, False)
-                tracking_settings.open_tracking = OpenTracking(True)
-                mail.tracking_settings = tracking_settings
-
-                # Add custom tracking ID in a SendGrid-supported way
-                mail.add_custom_arg(CustomArg("tracking_id", tracking_id))
+            # No click/open tracking; privacy-friendly sending
             
             # Send the email
             response = self.sg.send(mail)
@@ -117,24 +104,13 @@ class EmailService:
             html_content = self._create_email_html(email_data)
             plain_content = self._create_email_plain(email_data)
             
-            # Add tracking link if it's a phishing email
-            if email_data.get("email_type") == "phishing" and email_data.get("click_tracking_id"):
-                tracking_url = f"http://localhost:8000/api/track/{email_data['click_tracking_id']}"
-                html_content = html_content.replace(
-                    "{{TRACKING_URL}}", 
-                    f'<a href="{tracking_url}" style="color: #007bff; text-decoration: underline;">Click here</a>'
-                )
-                plain_content = plain_content.replace(
-                    "{{TRACKING_URL}}", 
-                    f"Click here: {tracking_url}"
-                )
+            # No tracking links injected; templates already render training link copy
             
             return await self.send_email(
                 to_email=recipient_email,
                 subject=email_data["subject"],
                 html_content=html_content,
                 plain_content=plain_content,
-                tracking_id=email_data.get("click_tracking_id")
             )
             
         except Exception as e:
@@ -189,7 +165,7 @@ class EmailService:
             <div class="footer">
                 <p><strong>This is a PhishSchool training email.</strong></p>
                 <p>This email was generated for educational purposes to help you learn how to identify phishing attempts.</p>
-                {{TRACKING_URL}}
+                
             </div>
         </body>
         </html>
@@ -225,7 +201,6 @@ Type: {email_type_badge}
             plain += f"Explanation: {email_data['explanation']}\n\n"
         
         plain += "This is a PhishSchool training email for educational purposes.\n"
-        plain += "{{TRACKING_URL}}\n"
         
         return plain
     

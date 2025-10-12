@@ -17,7 +17,7 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.email_service import get_email_service
-from services.supabase_service import CampaignService, TrackingService
+from services.supabase_service import CampaignService
 
 async def test_email_service():
     """Test the email service functionality"""
@@ -42,7 +42,6 @@ async def test_email_service():
                 "Request for immediate verification"
             ],
             "explanation": "This email uses urgency tactics and generic greetings typical of phishing attempts.",
-            "click_tracking_id": "test-tracking-123"
         }
         
         # Test recipient (use environment variable or default)
@@ -81,9 +80,7 @@ async def test_supabase_connection():
         campaign_service = CampaignService()
         print("✅ Campaign service initialized!")
         
-        # Test tracking service
-        tracking_service = TrackingService()
-        print("✅ Tracking service initialized!")
+        # Tracking service removed
         
     except Exception as e:
         print(f"❌ Error testing Supabase: {e}")

@@ -64,7 +64,6 @@ async def send_test_email():
             "body": "This is a test email to verify SendGrid integration is working correctly.",
             "phishing_indicators": ["Suspicious sender", "Urgent language"],
             "explanation": "This is a test email for verification purposes.",
-            "click_tracking_id": "test-tracking-123"
         }
         
         # Send to test recipient
@@ -166,7 +165,6 @@ async def send_phishing_now(req: SendPhishingNowRequest):
             "body": message_data.get("body") or "Please verify your account.",
             "phishing_indicators": message_data.get("phishing_indicators", []),
             "explanation": message_data.get("explanation", "This is a simulated phishing email."),
-            "click_tracking_id": None,
         }
 
         success = await email_service.send_campaign_email(email_data=email_data, recipient_email=user_email)

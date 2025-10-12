@@ -229,7 +229,6 @@ class CampaignService:
                 
                 # Create campaign email
                 email_id = str(uuid.uuid4())
-                tracking_id = str(uuid.uuid4())
                 
                 campaign_email = {
                     "id": email_id,
@@ -244,7 +243,6 @@ class CampaignService:
                     "scheduled_send_time": send_times[i].isoformat(),
                     "sent_at": None,
                     "clicked_at": None,
-                    "click_tracking_id": tracking_id,
                     "created_at": datetime.utcnow().isoformat()
                 }
                 
@@ -366,68 +364,4 @@ class CampaignService:
                 "error": str(e)
             }
 
-# Tracking service for email clicks
-class TrackingService:
-    def __init__(self):
-        self.supabase = get_supabase_client()
-    
-    async def record_email_click(self, tracking_id: str, ip_address: str, user_agent: str) -> Optional[Dict[str, Any]]:
-        """Record an email click and return email data"""
-        # Find the email by tracking ID
-        result = self.supabase.table("campaign_emails").select("*").eq("click_tracking_id", tracking_id).execute()
-        
-        if not result.data:
-            return None
-        
-        email_data = result.data[0]
-        
-        # Update the email with click information
-        self.supabase.table("campaign_emails").update({
-            "clicked_at": datetime.utcnow().isoformat()
-        }).eq("id", email_data["id"]).execute()
-        
-        # Store tracking data
-        tracking_data = {
-            "tracking_id": tracking_id,
-            "email_id": email_data["id"],
-            "campaign_id": email_data["campaign_id"],
-            "clicked_at": datetime.utcnow().isoformat(),
-            "ip_address": ip_address,
-            "user_agent": user_agent
-        }
-        
-        self.supabase.table("email_tracking").insert(tracking_data).execute()
-        
-        return email_data
-    
-    async def get_tracking_stats(self, tracking_id: str) -> Optional[Dict[str, Any]]:
-        """Get tracking statistics for a specific email"""
-        # Get tracking data
-        tracking_result = self.supabase.table("email_tracking").select("*").eq("tracking_id", tracking_id).execute()
-        
-        if not tracking_result.data:
-            return None
-        
-        tracking_data = tracking_result.data[0]
-        
-        # Get email data
-        email_result = self.supabase.table("campaign_emails").select("*").eq("id", tracking_data["email_id"]).execute()
-        
-        if not email_result.data:
-            return None
-        
-        email_data = email_result.data[0]
-        
-        return {
-            "tracking_id": tracking_data["tracking_id"],
-            "email_id": email_data["id"],
-            "campaign_id": email_data["campaign_id"],
-            "email_type": email_data["email_type"],
-            "subject": email_data["subject"],
-            "sender_email": email_data["sender_email"],
-            "clicked_at": tracking_data["clicked_at"],
-            "ip_address": tracking_data["ip_address"],
-            "user_agent": tracking_data["user_agent"],
-            "phishing_indicators": email_data.get("phishing_indicators", []),
-            "explanation": email_data.get("explanation", "")
-        }
+# Tracking features removed: no click tracking service or stats
