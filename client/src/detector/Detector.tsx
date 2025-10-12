@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 
-const API_BASE_URL = 'https://phishschoolbackend.vercel.app'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://phishschoolbackend.vercel.app/api'
 
 type DetectorResult = {
   filename: string
@@ -83,7 +83,7 @@ export default function Detector() {
       formData.append('file', file)
 
 
-      const response = await fetch(`${API_BASE_URL}/api/uploads/eml`, {
+      const response = await fetch(`${API_BASE_URL}/uploads/eml`, {
         method: 'POST',
         body: formData,
       })
