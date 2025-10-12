@@ -29,6 +29,8 @@ export default function Detector() {
   const [result, setResult] = useState<DetectorResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  // Text size for rendered analysis content
+  const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base')
 
 
   /** Handle manual file picker changes */
@@ -232,6 +234,28 @@ export default function Detector() {
       {/* Results Display */}
       {result && (
         <div className="animate-fadeIn space-y-4">
+          {/* Content toolbar */}
+          <div className="mb-1 flex items-center justify-end gap-2">
+            <span className="text-xs text-gray-500">Text size:</span>
+            <button
+              onClick={() => setTextSize('sm')}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'sm' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              Small
+            </button>
+            <button
+              onClick={() => setTextSize('base')}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'base' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              Medium
+            </button>
+            <button
+              onClick={() => setTextSize('lg')}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${textSize === 'lg' ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              Large
+            </button>
+          </div>
           {/* Risk Level Banner */}
           <div
             className={`rounded-2xl border-2 p-8 shadow-lg ${
@@ -252,7 +276,7 @@ export default function Detector() {
             <h3 className="mb-2 text-center text-2xl font-bold text-gray-800">
               Analysis Complete
             </h3>
-            <p className="text-center text-lg font-semibold capitalize text-gray-700">
+            <p className={`text-center ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} font-semibold capitalize text-gray-700`}>
               Risk Level: {result.risk_level || 'Unknown'}
             </p>
 
@@ -288,19 +312,19 @@ export default function Detector() {
                 <span>📧</span> Email Details
               </h4>
               <div className="space-y-3">
-                <div className="flex gap-2 text-sm">
+                <div className={`flex gap-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
                   <span className="font-semibold text-gray-600">From:</span>
                   <span className="break-all text-gray-800">{result.email_data.from}</span>
                 </div>
-                <div className="flex gap-2 text-sm">
+                <div className={`flex gap-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
                   <span className="font-semibold text-gray-600">To:</span>
                   <span className="break-all text-gray-800">{result.email_data.to}</span>
                 </div>
-                <div className="flex gap-2 text-sm">
+                <div className={`flex gap-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
                   <span className="font-semibold text-gray-600">Subject:</span>
                   <span className="break-all text-gray-800">{result.email_data.subject}</span>
                 </div>
-                <div className="flex gap-2 text-sm">
+                <div className={`flex gap-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'}`}>
                   <span className="font-semibold text-gray-600">Date:</span>
                   <span className="text-gray-800">{result.email_data.date}</span>
                 </div>
@@ -317,7 +341,7 @@ export default function Detector() {
               </h4>
               <ul className="space-y-2">
                 {result.indicators.map((indicator: string, index: number) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                  <li key={index} className={`flex items-start gap-2 ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} text-gray-700`}>
                     <span className="mt-0.5 text-orange-500">▸</span>
                     <span>{indicator}</span>
                   </li>
@@ -333,13 +357,13 @@ export default function Detector() {
               <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-800">
                 <span>🤖</span> AI Analysis
               </h4>
-              <p className="text-sm leading-relaxed text-gray-700">{result.explanation}</p>
+              <p className={`${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} leading-relaxed text-gray-700`}>{result.explanation}</p>
             </div>
           )}
 
 
           {/* Filename */}
-          <div className="text-center text-sm text-gray-500">
+          <div className={`text-center ${textSize === 'sm' ? 'text-sm' : textSize === 'lg' ? 'text-lg' : 'text-base'} text-gray-500`}>
             Analyzed: {result.filename}
           </div>
         </div>
