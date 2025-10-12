@@ -7,6 +7,7 @@ application's training page.
 """
 
 import os
+import re
 from urllib.parse import urlparse
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import (
@@ -211,27 +212,56 @@ To: {email_data["recipient_email"]}
         try:
             start = text.index('{')
             end = text.index('}', start + 1)
+            malicious = text[start + 1:end].strip()
+            training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
+            anchor = (
+                f'<a href="{training_href}" target="_blank" rel="noopener noreferrer" '
+                f'style="color: #007bff; text-decoration: underline;">{malicious}</a>'
+            )
+            return text[:start] + anchor + text[end + 1:]
         except ValueError:
-            return text
-
-        malicious = text[start + 1:end].strip()
-        # Build safe anchor displaying the malicious text but linking to our training page
-        training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
-        anchor = f'<a href="{training_href}" style="color: #007bff; text-decoration: underline;">{malicious}</a>'
-        return text[:start] + anchor + text[end + 1:]
+            # No brace-wrapped URL; fallback to first detectable URL
+            return self._rewrite_first_url_to_training_link(text)
 
     def _convert_brace_url_to_training_link_plain(self, text: str) -> str:
         """Plain-text variant: replace brace-wrapped URL with the training page URL and preserve the visible URL."""
         try:
             start = text.index('{')
             end = text.index('}', start + 1)
+            malicious = text[start + 1:end].strip()
+            training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
+            replacement = f"{malicious} (training: {training_href})"
+            return text[:start] + replacement + text[end + 1:]
         except ValueError:
-            return text
+            # No braces; fallback to append training link once if a URL is present
+            training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
+            url = self._find_first_url(text)
+            return text if not url else text.replace(url, f"{url} (training: {training_href})", 1)
 
-        malicious = text[start + 1:end].strip()
+    def _find_first_url(self, text: str) -> str:
+        """Return the first URL-like token or empty string.
+
+        Matches http/https and bare www.* forms.
+        """
+        if not text:
+            return ""
+        m = re.search(r"https?://[^\s<>\)]+|\bwww\.[^\s<>\)]+", text, re.IGNORECASE)
+        return m.group(0) if m else ""
+
+    def _rewrite_first_url_to_training_link(self, text: str) -> str:
+        """Replace the first detected URL with an anchor to the training page.
+
+        The visible text remains the original URL, but href points to /phished.
+        """
+        url = self._find_first_url(text)
+        if not url:
+            return text
         training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
-        replacement = f"{malicious} (training: {training_href})"
-        return text[:start] + replacement + text[end + 1:]
+        anchor = (
+            f'<a href="{training_href}" target="_blank" rel="noopener noreferrer" '
+            f'style="color: #007bff; text-decoration: underline;">{url}</a>'
+        )
+        return text.replace(url, anchor, 1)
 
     def _derive_frontend_from_vite_api(self, vite_api_base_url: str) -> str:
         """Best-effort derivation of a frontend base URL from VITE_API_BASE_URL.
