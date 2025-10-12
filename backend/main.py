@@ -25,13 +25,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-# Note: On Vercel, the app is mounted under "/api". Using non-"/api" prefixes here
-# ensures the final public paths remain "/api/<route>" (no double "/api").
-app.include_router(uploads.router, prefix="/uploads", tags=["uploads"])  
-app.include_router(generate.router, prefix="/generate", tags=["generate"])  
-app.include_router(email.router, prefix="/email", tags=["email"])  
-app.include_router(tracking.router, prefix="", tags=["tracking"])  # exposes /track/*
+# Include routers under both root and /api for deploy flexibility
+for base_prefix in ("", "/api"):
+    app.include_router(uploads.router, prefix=f"{base_prefix}/uploads", tags=["uploads"])  
+    app.include_router(generate.router, prefix=f"{base_prefix}/generate", tags=["generate"])  
+    app.include_router(email.router, prefix=f"{base_prefix}/email", tags=["email"])  
+    app.include_router(tracking.router, prefix=base_prefix, tags=["tracking"])  # exposes /track/* and /api/track/*
 
 @app.get("/")
 async def root():
@@ -45,6 +44,19 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    return {"status": "healthy"}
+
+# Mirror health and root under /api as well
+@app.get("/api")
+async def api_root():
+    return {
+        "message": "Welcome to PhishSchool API",
+        "status": "healthy",
+        "version": "1.0.0"
+    }
+
+@app.get("/api/health")
+async def api_health_check():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
