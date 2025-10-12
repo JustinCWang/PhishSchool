@@ -5,6 +5,4 @@ python-multipart==0.0.6
 
 # Add your dependencies here as needed:
 python-dotenv==1.0.0
-# firebase-admin==6.2.0
-# eml-parser==1.17.4
 google-generativeai==0.8.5
