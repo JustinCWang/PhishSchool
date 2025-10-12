@@ -67,7 +67,7 @@ export default function Phished() {
         disabled={updating}
         className="rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
       >
-        {updating ? 'Updating…' : 'I Understand — Take me to Learn'}
+        {updating ? 'Updating…' : 'Take me back to PhishSchool'}
       </button>
     </div>
   )

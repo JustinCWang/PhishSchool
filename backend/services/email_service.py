@@ -131,7 +131,6 @@ class EmailService:
     def _create_email_html(self, email_data: Dict[str, Any]) -> str:
         """Create HTML content for the email"""
         email_type = email_data.get("email_type", "legitimate")
-        email_type_badge = "🔴 PHISHING" if email_type == "phishing" else "🟢 LEGITIMATE"
         # If phishing, convert any single brace-wrapped URL in the body to a link to our training page
         raw_body: str = email_data.get("body", "")
         body_with_link = self._convert_brace_url_to_training_link(raw_body) if email_type == "phishing" else raw_body
@@ -146,18 +145,12 @@ class EmailService:
             <style>
                 body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
                 .header {{ background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
-                .badge {{ display: inline-block; padding: 5px 10px; border-radius: 3px; font-size: 12px; font-weight: bold; }}
-                .phishing {{ background: #dc3545; color: white; }}
-                .legitimate {{ background: #28a745; color: white; }}
                 .content {{ background: white; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
-                .footer {{ margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; font-size: 12px; color: #666; }}
-                .indicators {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin: 10px 0; }}
             </style>
         </head>
         <body>
             <div class="header">
                 <h2>{email_data["subject"]}</h2>
-                <span class="badge {'phishing' if email_type == 'phishing' else 'legitimate'}">{email_type_badge}</span>
             </div>
             
             <div class="content">
@@ -167,16 +160,6 @@ class EmailService:
                 <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 5px;">
                     {body_with_link.replace(chr(10), '<br>')}
                 </div>
-                
-                {self._format_phishing_indicators(email_data.get("phishing_indicators", []))}
-                
-                {self._format_explanation(email_data.get("explanation", ""))}
-            </div>
-            
-            <div class="footer">
-                <p><strong>This is a PhishSchool training email.</strong></p>
-                <p>This email was generated for educational purposes to help you learn how to identify phishing attempts.</p>
-                
             </div>
         </body>
         </html>
@@ -186,32 +169,17 @@ class EmailService:
     def _create_email_plain(self, email_data: Dict[str, Any]) -> str:
         """Create plain text content for the email"""
         email_type = email_data.get("email_type", "legitimate")
-        email_type_badge = "PHISHING" if email_type == "phishing" else "LEGITIMATE"
-        # For phishing emails, also append our training link in place of any brace URL in plain text
+        # For plain text, avoid adding any training labels or indicators; keep body as-is
         raw_body: str = email_data.get("body", "")
-        if email_type == "phishing":
-            raw_body = self._convert_brace_url_to_training_link_plain(raw_body)
         
         plain = f"""
 Subject: {email_data["subject"]}
 From: {email_data["sender_email"]}
 To: {email_data["recipient_email"]}
-Type: {email_type_badge}
 
 {raw_body}
 
 """
-        
-        if email_data.get("phishing_indicators"):
-            plain += "Phishing Indicators:\n"
-            for indicator in email_data["phishing_indicators"]:
-                plain += f"- {indicator}\n"
-            plain += "\n"
-        
-        if email_data.get("explanation"):
-            plain += f"Explanation: {email_data['explanation']}\n\n"
-        
-        plain += "This is a PhishSchool training email for educational purposes.\n"
         
         return plain
     

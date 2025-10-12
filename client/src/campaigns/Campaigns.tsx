@@ -46,6 +46,7 @@ export default function Campaigns() {
         setErrorMessage('Unable to load preferences right now.')
       } else {
         setOptedIn(Boolean(data?.opted_in))
+        setCollapsed(Boolean(data?.opted_in))
         if (data?.frequency === 'daily' || data?.frequency === 'weekly' || data?.frequency === 'monthly') {
           setFrequency(data.frequency)
         } else {
@@ -101,6 +102,11 @@ export default function Campaigns() {
     }
     setSaved(true)
     setCanCollapse(true)
+    if (optedIn) {
+      setCollapsed(true)
+    } else {
+      setCollapsed(false)
+    }
     setTimeout(() => setSaved(false), 3000)
   }
 
