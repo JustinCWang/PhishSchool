@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
 import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
 import { supabase } from '../lib/supabase'
@@ -13,16 +13,23 @@ export default function Learn() {
   const [showResult, setShowResult] = useState(false)
   const [showLoginToast, setShowLoginToast] = useState(false)
   const [showWelcomeToast, setShowWelcomeToast] = useState(false)
+  const previousUserRef = useRef<typeof user>(undefined)
   
-  // Difficulty dropdowns state
-  const [randomDifficulty, setRandomDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
-  const [emailDifficulty, setEmailDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
-  const [smsDifficulty, setSmsDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium')
+  // Difficulty dropdowns state (now includes legitimate option)
+  const [randomDifficulty, setRandomDifficulty] = useState<'easy' | 'medium' | 'hard' | 'legitimate'>('medium')
+  const [emailDifficulty, setEmailDifficulty] = useState<'easy' | 'medium' | 'hard' | 'legitimate'>('medium')
+  const [smsDifficulty, setSmsDifficulty] = useState<'easy' | 'medium' | 'hard' | 'legitimate'>('medium')
   
   // Score tracking state
   const [learnAttempts, setLearnAttempts] = useState(0)
   const [learnCorrect, setLearnCorrect] = useState(0)
   const [loadingStats, setLoadingStats] = useState(true)
+  const [userRank, setUserRank] = useState<number | null>(null)
+  
+  // Leaderboard state (Scores table)
+  const [leaderboard, setLeaderboard] = useState<Array<{ score_id: string; learn_correct: number; learn_attempted: number | null }>>([])
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+  const [currentUserName, setCurrentUserName] = useState<string>('')
 
   // Load user stats from Supabase
   useEffect(() => {
@@ -32,13 +39,14 @@ export default function Learn() {
         setLoadingStats(false)
         setLearnAttempts(0)
         setLearnCorrect(0)
+        setUserRank(null)
         return
       }
       setLoadingStats(true)
       const { data, error } = await supabase
-        .from('Users')
-        .select('learn_attempts, learn_correct')
-        .eq('user_id', user.id)
+        .from('Scores')
+        .select('learn_attempted, learn_correct')
+        .eq('score_id', user.id)
         .maybeSingle()
       
       if (!isMounted) return
@@ -46,8 +54,23 @@ export default function Learn() {
       if (error) {
         console.error('Failed to load learn stats:', error.message)
       } else {
-        setLearnAttempts(data?.learn_attempts ?? 0)
-        setLearnCorrect(data?.learn_correct ?? 0)
+        const userCorrect = data?.learn_correct ?? 0
+        setLearnAttempts(data?.learn_attempted ?? 0)
+        setLearnCorrect(userCorrect)
+        // Ensure a Scores row exists for this user if missing
+        if (!data) {
+          await supabase
+            .from('Scores')
+            .upsert({ score_id: user.id, learn_attempted: 0, learn_correct: 0 }, { onConflict: 'score_id' })
+        }
+        
+        // Calculate user's rank
+        const { count } = await supabase
+          .from('Scores')
+          .select('*', { count: 'exact', head: true })
+          .gt('learn_correct', userCorrect)
+        
+        setUserRank((count ?? 0) + 1)
       }
       setLoadingStats(false)
     }
@@ -57,9 +80,66 @@ export default function Learn() {
     }
   }, [user])
 
-  // Show toast notifications when user logs in
+  // Load leaderboard from Supabase
   useEffect(() => {
-    if (user && !loading) {
+    let isMounted = true
+    async function loadLeaderboard() {
+      setLoadingLeaderboard(true)
+      const { data, error } = await supabase
+        .from('Scores')
+        .select('score_id, learn_correct, learn_attempted')
+        .order('learn_correct', { ascending: false })
+        .limit(10)
+      
+      if (!isMounted) return
+      
+      if (error) {
+        console.error('Failed to load leaderboard:', error.message)
+      } else {
+        setLeaderboard((data ?? []) as Array<{ score_id: string; learn_correct: number; learn_attempted: number | null }>)
+      }
+      setLoadingLeaderboard(false)
+    }
+    void loadLeaderboard()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Load current user's name from Users table
+  useEffect(() => {
+    let isMounted = true
+    async function loadUserName() {
+      if (!user) {
+        setCurrentUserName('')
+        return
+      }
+      const { data, error } = await supabase
+        .from('Users')
+        .select('first_name, last_name, email')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (!isMounted) return
+      if (error) {
+        console.error('Failed to load user name:', error.message)
+        setCurrentUserName(user.email ?? '')
+      } else {
+        const first = (data?.first_name ?? '').trim()
+        const last = (data?.last_name ?? '').trim()
+        const full = `${first} ${last}`.trim()
+        setCurrentUserName(full || data?.email || user.email || '')
+      }
+    }
+    void loadUserName()
+    return () => {
+      isMounted = false
+    }
+  }, [user])
+
+  // Show toast notifications ONLY when user actually logs in (not on page load if already logged in)
+  useEffect(() => {
+    // Only show toast if user transitioned from null to logged in
+    if (user && !loading && previousUserRef.current === null) {
       setShowLoginToast(true)
       setTimeout(() => {
         setShowWelcomeToast(true)
@@ -68,6 +148,11 @@ export default function Learn() {
       // Hide toasts after a few seconds
       setTimeout(() => setShowLoginToast(false), 3000)
       setTimeout(() => setShowWelcomeToast(false), 3500)
+    }
+    
+    // Update the ref to track previous user state
+    if (!loading) {
+      previousUserRef.current = user
     }
   }, [user, loading])
 
@@ -126,17 +211,35 @@ export default function Learn() {
   	setLearnAttempts(newAttempts)
   	setLearnCorrect(newCorrect)
   	
-  	// Update database
-  	const { error } = await supabase
-    	.from('Users')
-    	.update({
-      	learn_attempts: newAttempts,
-      	learn_correct: newCorrect
-    	})
-    	.eq('user_id', user.id)
+  	// Upsert database row to ensure it exists
+  	  const { error } = await supabase
+      .from('Scores')
+      .upsert({
+        score_id: user.id,
+        learn_attempted: newAttempts,
+        learn_correct: newCorrect
+      }, { onConflict: 'score_id' })
   	
   	if (error) {
     	console.error('Failed to update learn stats:', error.message)
+  	} else {
+    	// Reload leaderboard to show updated scores
+    const { data } = await supabase
+      .from('Scores')
+      .select('score_id, learn_correct, learn_attempted')
+      .order('learn_correct', { ascending: false })
+      .limit(10)
+    	if (data) {
+      	setLeaderboard(data)
+    	}
+    	
+    	// Recalculate user's rank
+    const { count } = await supabase
+      .from('Scores')
+      	.select('*', { count: 'exact', head: true })
+      .gt('learn_correct', newCorrect)
+    	
+    	setUserRank((count ?? 0) + 1)
   	}
 	}
   }
@@ -182,10 +285,38 @@ export default function Learn() {
     	</div>
   	)}
   	
-  	{/* Centered Title */}
-  	<h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-    	Learn
-  	</h1>
+  	{/* Title with Score on Right */}
+  	<div className="flex items-center justify-between">
+    	<div className="flex-1"></div>
+    	<h1 className="flex-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+      	Learn
+    	</h1>
+    	{user && (
+      	<div className="flex-1 flex justify-end">
+        	{loadingStats ? (
+          	<div className="text-sm text-gray-500">Loading...</div>
+        	) : (
+          	<div className="flex gap-3 text-sm">
+            	<div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-md font-semibold">
+              	{learnAttempts} Attempts
+            	</div>
+            	<div className="bg-green-100 text-green-700 px-3 py-1 rounded-md font-semibold">
+              	{learnCorrect} Correct
+            	</div>
+            	<div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-md font-semibold">
+              	{learnAttempts > 0 ? Math.round((learnCorrect / learnAttempts) * 100) : 0}%
+            	</div>
+            	{userRank !== null && (
+              	<div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-md font-semibold flex items-center gap-1">
+                	<span>🏆</span>
+                	<span>#{userRank}</span>
+              	</div>
+            	)}
+          	</div>
+        	)}
+      	</div>
+    	)}
+  	</div>
 
   	{user ? (
     	<>
@@ -202,32 +333,48 @@ export default function Learn() {
         	</div>
       	)}
 
-      	{/* Current Score Section */}
-      	<div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 p-6 shadow-lg">
-        	<h2 className="text-xl font-bold text-indigo-800 text-center mb-4">📊 Your Current Score</h2>
+      	{/* Top 10 Leaderboard */}
+      	<div className="rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-6 shadow-lg">
+        	<h2 className="text-2xl font-bold text-amber-800 text-center mb-6">🏆 Top 10 Leaderboard</h2>
         	
-        	{loadingStats ? (
-          	<div className="text-center text-gray-600">Loading stats...</div>
+        	{loadingLeaderboard ? (
+          	<div className="text-center text-gray-600">Loading leaderboard...</div>
+        	) : leaderboard.length === 0 ? (
+          	<div className="text-center text-gray-600">No scores yet. Be the first!</div>
         	) : (
-          	<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            	{/* Total Attempts */}
-            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
-              	<div className="text-3xl font-bold text-indigo-600">{learnAttempts}</div>
-              	<div className="text-sm text-gray-600 mt-1">Total Attempts</div>
-            	</div>
-            	
-            	{/* Correct Guesses */}
-            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
-              	<div className="text-3xl font-bold text-green-600">{learnCorrect}</div>
-              	<div className="text-sm text-gray-600 mt-1">Correct Guesses</div>
-            	</div>
-            	
-            	{/* Accuracy Percentage */}
-            	<div className="bg-white rounded-lg p-4 shadow-md text-center">
-              	<div className="text-3xl font-bold text-purple-600">
-                	{learnAttempts > 0 ? Math.round((learnCorrect / learnAttempts) * 100) : 0}%
-              	</div>
-              	<div className="text-sm text-gray-600 mt-1">Accuracy</div>
+          	<div className="bg-white rounded-lg shadow-md overflow-hidden">
+            	<div className="divide-y divide-gray-200">
+              	{leaderboard.map((entry, index) => (
+                	<div 
+                  	key={index}
+                  	className={`flex items-center justify-between p-4 ${
+                    	index === 0 ? 'bg-gradient-to-r from-amber-100 to-yellow-100' :
+                    	index === 1 ? 'bg-gradient-to-r from-gray-100 to-slate-100' :
+                    	index === 2 ? 'bg-gradient-to-r from-orange-100 to-amber-100' :
+                    	'hover:bg-gray-50'
+                  	}`}
+                	>
+                  	<div className="flex items-center gap-4">
+                    	<div className={`text-2xl font-bold ${
+                      	index === 0 ? 'text-amber-600' :
+                      	index === 1 ? 'text-gray-600' :
+                      	index === 2 ? 'text-orange-600' :
+                      	'text-gray-400'
+                    	}`}>
+                      	#{index + 1}
+                    	</div>
+                    	<div>
+                      <div className="font-semibold text-gray-800">
+                        {entry.score_id === user?.id ? (currentUserName || 'You') : 'Anonymous'}
+                      </div>
+                    	</div>
+                  	</div>
+                  	<div className="flex items-center gap-2">
+                    	<span className="text-2xl font-bold text-green-600">{entry.learn_correct}</span>
+                    	<span className="text-sm text-gray-500">correct</span>
+                  	</div>
+                	</div>
+              	))}
             	</div>
           	</div>
         	)}
@@ -251,20 +398,46 @@ export default function Learn() {
           	
           	<div className="space-y-3">
             	<div>
-              	<label className="block text-sm font-medium text-purple-700 mb-1">Difficulty</label>
+              	<label className="block text-sm font-medium text-purple-700 mb-1">Type</label>
               	<select
                 	value={randomDifficulty}
-                	onChange={(e) => setRandomDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	onChange={(e) => setRandomDifficulty(e.target.value as 'easy' | 'medium' | 'hard' | 'legitimate')}
                 	className="w-full rounded-md border border-purple-300 bg-white px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               	>
-                	<option value="easy">Easy</option>
-                	<option value="medium">Medium</option>
-                	<option value="hard">Hard</option>
+                	<option value="easy">Easy Phishing</option>
+                	<option value="medium">Medium Phishing</option>
+                	<option value="hard">Hard Phishing</option>
+                	<option value="legitimate">Legitimate</option>
               	</select>
             	</div>
             	
             	<button
-              	onClick={generateRandomPracticeMessage}
+              	onClick={async () => {
+                	setIsGenerating(true)
+                	setGeneratingType('random')
+                	setError(null)
+                	setUserAnswer(null)
+                	setShowResult(false)
+                	
+                	try {
+                  	const contentType = randomDifficulty === 'legitimate' ? 'legitimate' : 'phishing'
+                  	const difficulty = randomDifficulty === 'legitimate' ? 'medium' : randomDifficulty
+                  	const messageType = Math.random() > 0.5 ? 'email' : 'sms'
+                  	const theme = contentType === 'legitimate' ? 'friend' : (messageType === 'email' ? 'bank' : 'offer')
+                  	const message = await generateMessage({
+                    	message_type: messageType,
+                    	content_type: contentType,
+                    	difficulty: difficulty as 'easy' | 'medium' | 'hard',
+                    	theme
+                  	})
+                  	setCurrentMessage(message)
+                	} catch (err) {
+                  	setError(err instanceof Error ? err.message : 'Failed to generate message')
+                	} finally {
+                  	setIsGenerating(false)
+                  	setGeneratingType(null)
+                	}
+              	}}
               	disabled={isGenerating}
               	className="w-full rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             	>
@@ -278,25 +451,49 @@ export default function Learn() {
           	<div className="text-center mb-4">
             	<div className="text-4xl mb-2">📧</div>
             	<h3 className="text-xl font-bold text-blue-800">Email Message</h3>
-            	<p className="text-sm text-blue-600 mt-2">Practice with email phishing attempts</p>
+            	<p className="text-sm text-blue-600 mt-2">Practice with email messages</p>
           	</div>
           	
           	<div className="space-y-3">
             	<div>
-              	<label className="block text-sm font-medium text-blue-700 mb-1">Difficulty</label>
+              	<label className="block text-sm font-medium text-blue-700 mb-1">Type</label>
               	<select
                 	value={emailDifficulty}
-                	onChange={(e) => setEmailDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	onChange={(e) => setEmailDifficulty(e.target.value as 'easy' | 'medium' | 'hard' | 'legitimate')}
                 	className="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               	>
-                	<option value="easy">Easy</option>
-                	<option value="medium">Medium</option>
-                	<option value="hard">Hard</option>
+                	<option value="easy">Easy Phishing</option>
+                	<option value="medium">Medium Phishing</option>
+                	<option value="hard">Hard Phishing</option>
+                	<option value="legitimate">Legitimate</option>
               	</select>
             	</div>
             	
             	<button
-              	onClick={() => generateNewMessage('phishing', emailDifficulty, 'email', 'bank')}
+              	onClick={async () => {
+                	setIsGenerating(true)
+                	setGeneratingType('email')
+                	setError(null)
+                	setUserAnswer(null)
+                	setShowResult(false)
+                	
+                	try {
+                  	const contentType = emailDifficulty === 'legitimate' ? 'legitimate' : 'phishing'
+                  	const difficulty = emailDifficulty === 'legitimate' ? 'medium' : emailDifficulty
+                  	const message = await generateMessage({
+                    	message_type: 'email',
+                    	content_type: contentType,
+                    	difficulty: difficulty as 'easy' | 'medium' | 'hard',
+                    	theme: emailDifficulty === 'legitimate' ? 'friend' : 'bank'
+                  	})
+                  	setCurrentMessage(message)
+                	} catch (err) {
+                  	setError(err instanceof Error ? err.message : 'Failed to generate message')
+                	} finally {
+                  	setIsGenerating(false)
+                  	setGeneratingType(null)
+                	}
+              	}}
               	disabled={isGenerating}
               	className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             	>
@@ -310,25 +507,49 @@ export default function Learn() {
           	<div className="text-center mb-4">
             	<div className="text-4xl mb-2">💬</div>
             	<h3 className="text-xl font-bold text-green-800">Text Message</h3>
-            	<p className="text-sm text-green-600 mt-2">Practice with SMS phishing attacks</p>
+            	<p className="text-sm text-green-600 mt-2">Practice with SMS messages</p>
           	</div>
           	
           	<div className="space-y-3">
             	<div>
-              	<label className="block text-sm font-medium text-green-700 mb-1">Difficulty</label>
+              	<label className="block text-sm font-medium text-green-700 mb-1">Type</label>
               	<select
                 	value={smsDifficulty}
-                	onChange={(e) => setSmsDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                	onChange={(e) => setSmsDifficulty(e.target.value as 'easy' | 'medium' | 'hard' | 'legitimate')}
                 	className="w-full rounded-md border border-green-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
               	>
-                	<option value="easy">Easy</option>
-                	<option value="medium">Medium</option>
-                	<option value="hard">Hard</option>
+                	<option value="easy">Easy Phishing</option>
+                	<option value="medium">Medium Phishing</option>
+                	<option value="hard">Hard Phishing</option>
+                	<option value="legitimate">Legitimate</option>
               	</select>
             	</div>
             	
             	<button
-              	onClick={() => generateNewMessage('phishing', smsDifficulty, 'sms', 'offer')}
+              	onClick={async () => {
+                	setIsGenerating(true)
+                	setGeneratingType('sms')
+                	setError(null)
+                	setUserAnswer(null)
+                	setShowResult(false)
+                	
+                	try {
+                  	const contentType = smsDifficulty === 'legitimate' ? 'legitimate' : 'phishing'
+                  	const difficulty = smsDifficulty === 'legitimate' ? 'medium' : smsDifficulty
+                  	const message = await generateMessage({
+                    	message_type: 'sms',
+                    	content_type: contentType,
+                    	difficulty: difficulty as 'easy' | 'medium' | 'hard',
+                    	theme: smsDifficulty === 'legitimate' ? 'friend' : 'offer'
+                  	})
+                  	setCurrentMessage(message)
+                	} catch (err) {
+                  	setError(err instanceof Error ? err.message : 'Failed to generate message')
+                	} finally {
+                  	setIsGenerating(false)
+                  	setGeneratingType(null)
+                	}
+              	}}
               	disabled={isGenerating}
               	className="w-full rounded-lg bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             	>
