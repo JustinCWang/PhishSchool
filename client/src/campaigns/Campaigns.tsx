@@ -118,8 +118,9 @@ export default function Campaigns() {
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Header Section */}
       <div className="text-center">
-        <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent">
-          Training Campaigns
+      <h1 className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-4xl font-bold text-transparent inline-flex items-center gap-3">
+          <span>Training Campaigns</span>
+          <img src="/CampaignFish.png" alt="Campaign Fish" className="h-18 w-auto object-contain" />
         </h1>
         <p className="mt-3 text-lg text-gray-600">
           Receive realistic phishing simulations and track your detection skills over time
