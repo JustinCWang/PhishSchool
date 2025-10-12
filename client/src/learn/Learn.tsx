@@ -6,8 +6,17 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
-import { generateMessage, generateRandomMessage, type GeneratedMessageResponse } from '../lib/api'
+import { generateMessage, type GeneratedMessageResponse } from '../lib/api'
 import { supabase } from '../lib/supabase'
+
+// Weighted probability to generate legitimate content in the Learn UI (frontend-only bias)
+const LEGIT_PROB = Math.max(
+  0,
+  Math.min(
+    1,
+    parseFloat((import.meta.env.VITE_LEGIT_PROB as string) ?? '0.3') || 0.3
+  )
+)
 
 /** Main Learn page component */
 export default function Learn() {
@@ -204,9 +213,22 @@ export default function Learn() {
   	setError(null)
   	setUserAnswer(null)
   	setShowResult(false)
- 	 
-  	const message = await generateRandomMessage()
-  	setCurrentMessage(message)
+		
+		// Frontend-weighted selection toward legitimate content
+		const messageType: 'email' | 'sms' = Math.random() > 0.5 ? 'email' : 'sms'
+		const contentType: 'phishing' | 'legitimate' = Math.random() < LEGIT_PROB ? 'legitimate' : 'phishing'
+		const difficulty: 'easy' | 'medium' | 'hard' = contentType === 'legitimate'
+			? 'medium'
+			: (['easy', 'medium', 'hard'] as const)[Math.floor(Math.random() * 3)]
+		const theme = contentType === 'legitimate' ? 'friend' : (messageType === 'email' ? 'bank' : 'offer')
+		
+		const message = await generateMessage({
+			message_type: messageType,
+			content_type: contentType,
+			difficulty,
+			theme
+		})
+		setCurrentMessage(message)
 	} catch (err) {
   	setError(err instanceof Error ? err.message : 'Failed to generate random message')
 	} finally {
@@ -518,8 +540,10 @@ export default function Learn() {
                 	setShowResult(false)
                 	
                 	try {
-                  	const contentType = randomDifficulty === 'legitimate' ? 'legitimate' : 'phishing'
-                  	const difficulty = randomDifficulty === 'legitimate' ? 'medium' : randomDifficulty
+					// Frontend-weighted selection toward legitimate content
+					const weightedType: 'phishing' | 'legitimate' = Math.random() < LEGIT_PROB ? 'legitimate' : 'phishing'
+					const contentType = weightedType
+					const difficulty: 'easy' | 'medium' | 'hard' = contentType === 'legitimate' ? 'medium' : (randomDifficulty === 'legitimate' ? 'medium' : randomDifficulty)
                   	const messageType = Math.random() > 0.5 ? 'email' : 'sms'
                   	const theme = contentType === 'legitimate' ? 'friend' : (messageType === 'email' ? 'bank' : 'offer')
                   	const message = await generateMessage({
