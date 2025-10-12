@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       if (data.session?.user) {
         void ensureUsersRow(data.session.user)
+        void ensureScoresRow(data.session.user)
       }
     })
 
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(newSession?.user ?? null)
       if (newSession?.user) {
         void ensureUsersRow(newSession.user)
+        void ensureScoresRow(newSession.user)
       }
     })
 
@@ -65,6 +67,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .upsert(upsertPayload, { onConflict: 'user_id' })
     if (upsertError) {
       console.error('Failed to ensure Users row:', upsertError.message)
+    }
+  }
+
+  async function ensureScoresRow(currentUser: User) {
+    // Insert default scores if missing; do not overwrite existing stats
+    const { error } = await supabase
+      .from('Scores')
+      .upsert(
+        { score_id: currentUser.id, learn_correct: 0, learn_attempted: 0 },
+        { onConflict: 'score_id', ignoreDuplicates: true }
+      )
+    if (error) {
+      console.error('Failed to ensure Scores row:', error.message)
     }
   }
 
