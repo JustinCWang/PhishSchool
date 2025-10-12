@@ -3,7 +3,6 @@ import os
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
-import uuid
 import random
 from services.gemini_client import generate_message, GeminiClientError
 from services.email_service import get_email_service
@@ -38,330 +37,227 @@ def get_supabase_client() -> Client:
             return create_client(supabase_url, supabase_key)
         raise
 
-# Database operations for campaigns
 class CampaignService:
+    """
+    Service for interacting with Supabase using the simplified schema:
+    - Users: data_joined, first_name, last_name, email, opted_in, num_fished, correct,
+             frequency, learn_attempts, learn_correct, last_sent_at, user_id (PK/unique)
+    - Scores: score_id (user_id), learn_correct, learn_attempted
+
+    Note: Class name preserved to avoid router import changes.
+    """
+
     def __init__(self):
         self.supabase = get_supabase_client()
-    
-    async def create_campaign(self, user_id: str, campaign_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new campaign in Supabase"""
-        campaign_id = str(uuid.uuid4())
-        
-        campaign = {
-            "id": campaign_id,
-            "user_id": user_id,
-            "name": campaign_data["name"],
-            "status": "active",
-            "email_frequency": campaign_data["email_frequency"],
-            "difficulty_level": campaign_data["difficulty_level"],
-            "preferred_themes": campaign_data["preferred_themes"],
-            "email_count": campaign_data["email_count"],
-            "duration_days": campaign_data["duration_days"],
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        result = self.supabase.table("campaigns").insert(campaign).execute()
-        
-        if result.data:
-            # Generate emails for the campaign
-            await self.generate_campaign_emails(campaign_id, campaign_data)
-            return result.data[0]
-        else:
-            raise Exception("Failed to create campaign")
-    
-    async def get_user_campaigns(self, user_id: str) -> List[Dict[str, Any]]:
-        """Get all campaigns for a user"""
-        result = self.supabase.table("campaigns").select("*").eq("user_id", user_id).execute()
-        
-        campaigns = []
-        for campaign in result.data:
-            # Get campaign statistics
-            stats = await self.get_campaign_stats(campaign["id"])
-            campaign.update(stats)
-            campaigns.append(campaign)
-        
-        return campaigns
 
-    # -------------------- User Preferences --------------------
-    async def get_user_preferences(self, user_id: str) -> Dict[str, Any]:
-        """Fetch user's email training preferences, falling back to sensible defaults."""
-        result = (
-            self.supabase
-            .table("user_email_preferences")
-            .select("*")
-            .eq("user_id", user_id)
-            .limit(1)
-            .execute()
-        )
-        if result.data:
-            return result.data[0]
-        # Defaults mirror schema defaults
-        return {
-            "user_id": user_id,
-            "email_frequency": "weekly",
-            "difficulty_level": "medium",
-            "preferred_themes": ["bank", "job", "friend"],
-            "is_active": False,
-        }
-
-    async def upsert_user_preferences(
+    # -------------------- Users helpers --------------------
+    async def ensure_users_row(
         self,
         user_id: str,
-        email_frequency: Optional[str] = None,
-        difficulty_level: Optional[str] = None,
-        preferred_themes: Optional[List[str]] = None,
-        is_active: Optional[bool] = None,
+        email: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create or update user preferences."""
-        existing = await self.get_user_preferences(user_id)
-        payload: Dict[str, Any] = {
+        defaults: Dict[str, Any] = {
             "user_id": user_id,
-            "email_frequency": email_frequency or existing.get("email_frequency", "weekly"),
-            "difficulty_level": difficulty_level or existing.get("difficulty_level", "medium"),
-            "preferred_themes": preferred_themes or existing.get("preferred_themes", ["bank", "job", "friend"]),
-            "is_active": existing.get("is_active", False) if is_active is None else is_active,
-            "updated_at": datetime.utcnow().isoformat(),
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "opted_in": False,
+            "frequency": "weekly",
+            "num_fished": 0,
+            "correct": 0,
+            "learn_attempts": 0,
+            "learn_correct": 0,
         }
-        # Insert or update
-        upsert_result = self.supabase.table("user_email_preferences").upsert(payload).execute()
-        return upsert_result.data[0] if upsert_result.data else payload
-
-    async def opt_in_user(self, user_id: str, email_frequency: Optional[str] = None) -> Dict[str, Any]:
-        """Opt-in a user and create a campaign based on their preferences (frequency-driven)."""
-        # Enable preferences
-        prefs = await self.upsert_user_preferences(
-            user_id=user_id,
-            email_frequency=email_frequency,
-            is_active=True,
+        result = (
+            self.supabase
+            .table("Users")
+            .upsert(defaults, on_conflict="user_id")
+            .execute()
         )
+        return result.data[0] if result.data else defaults
 
-        # Create a campaign tailored to the user's preferences
-        campaign_data = {
-            "name": f"PhishSchool Training ({prefs['email_frequency']})",
-            "email_frequency": prefs["email_frequency"],
-            "difficulty_level": prefs["difficulty_level"],
-            "preferred_themes": prefs.get("preferred_themes") or ["bank", "job", "friend"],
-            # Reasonable defaults; can be adjusted from the frontend later
-            "email_count": 10,
-            "duration_days": 30,
+    async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        res = (
+            self.supabase
+            .table("Users")
+            .select("*")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        return res.data if res.data else None
+
+    async def get_user_email(self, user_id: str) -> Optional[str]:
+        res = (
+            self.supabase
+            .table("Users")
+            .select("email")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        return (res.data or {}).get("email") if res.data else None
+
+    async def opt_in_user(self, user_id: str, frequency: Optional[str] = None) -> Dict[str, Any]:
+        freq = frequency or "weekly"
+        payload = {
+            "opted_in": True,
+            "frequency": freq,
         }
-        campaign = await self.create_campaign(user_id, campaign_data)
-        return {"preferences": prefs, "campaign": campaign}
+        res = (
+            self.supabase
+            .table("Users")
+            .update(payload)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        return res.data[0] if res.data else {"user_id": user_id, **payload}
 
     async def opt_out_user(self, user_id: str) -> Dict[str, Any]:
-        """Opt-out a user from receiving training emails."""
-        prefs = await self.upsert_user_preferences(user_id=user_id, is_active=False)
-        return {"preferences": prefs}
-    
-    async def get_campaign_emails(self, campaign_id: str) -> List[Dict[str, Any]]:
-        """Get all emails for a campaign"""
-        result = self.supabase.table("campaign_emails").select("*").eq("campaign_id", campaign_id).execute()
-        return result.data
-    
-    async def pause_campaign(self, campaign_id: str) -> bool:
-        """Pause a campaign"""
-        result = self.supabase.table("campaigns").update({
-            "status": "paused",
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("id", campaign_id).execute()
-        
-        return len(result.data) > 0
-    
-    async def resume_campaign(self, campaign_id: str) -> bool:
-        """Resume a campaign"""
-        result = self.supabase.table("campaigns").update({
-            "status": "active",
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("id", campaign_id).execute()
-        
-        return len(result.data) > 0
-    
-    async def delete_campaign(self, campaign_id: str) -> bool:
-        """Delete a campaign and all its emails"""
-        # Delete campaign emails first
-        self.supabase.table("campaign_emails").delete().eq("campaign_id", campaign_id).execute()
-        
-        # Delete campaign
-        result = self.supabase.table("campaigns").delete().eq("id", campaign_id).execute()
-        
-        return len(result.data) > 0
-    
-    async def get_campaign_stats(self, campaign_id: str) -> Dict[str, Any]:
-        """Get statistics for a campaign"""
-        # Get email counts
-        emails_result = self.supabase.table("campaign_emails").select("*").eq("campaign_id", campaign_id).execute()
-        emails = emails_result.data
-        
-        emails_sent = sum(1 for email in emails if email.get("sent_at") is not None)
-        emails_clicked = sum(1 for email in emails if email.get("clicked_at") is not None)
-        phishing_emails = [email for email in emails if email.get("email_type") == "phishing"]
-        phishing_clicked = sum(1 for email in phishing_emails if email.get("clicked_at") is not None)
-        
-        return {
-            "emails_sent": emails_sent,
-            "emails_clicked": emails_clicked,
-            "phishing_caught": len(phishing_emails) - phishing_clicked
-        }
-    
-    async def generate_campaign_emails(self, campaign_id: str, campaign_data: Dict[str, Any]):
-        """Generate emails for a campaign using Gemini"""
-        from datetime import timedelta
-        
-        # Calculate send times based on frequency
-        start_date = datetime.utcnow()
-        send_times = self.calculate_send_times(start_date, campaign_data["email_frequency"], campaign_data["email_count"])
-        
-        emails_to_insert = []
-        
-        for i in range(campaign_data["email_count"]):
-            try:
-                # Generate email using Gemini
-                theme = random.choice(campaign_data["preferred_themes"])
-                content_type = "phishing" if random.random() < 0.7 else "legitimate"  # 70% phishing
-                
-                message_data = generate_message(
-                    message_type="email",
-                    content_type=content_type,
-                    difficulty=campaign_data["difficulty_level"],
-                    theme=theme
-                )
-                
-                # Create campaign email
-                email_id = str(uuid.uuid4())
-                
-                campaign_email = {
-                    "id": email_id,
-                    "campaign_id": campaign_id,
-                    "email_type": content_type,
-                    "subject": message_data["subject"],
-                    "sender_email": message_data["sender"],
-                    "recipient_email": f"user{campaign_id}@phishschool.com",  # Mock recipient
-                    "body": message_data["body"],
-                    "phishing_indicators": message_data["phishing_indicators"],
-                    "explanation": message_data["explanation"],
-                    "scheduled_send_time": send_times[i].isoformat(),
-                    "sent_at": None,
-                    "clicked_at": None,
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                
-                emails_to_insert.append(campaign_email)
-                
-            except GeminiClientError as exc:
-                print(f"Failed to generate email {i+1} for campaign {campaign_id}: {exc}")
-                continue
-        
-        # Insert all emails at once
-        if emails_to_insert:
-            self.supabase.table("campaign_emails").insert(emails_to_insert).execute()
-    
-    def calculate_send_times(self, start_date: datetime, frequency: str, count: int) -> List[datetime]:
-        """Calculate when to send each email based on frequency"""
-        send_times = []
-        
-        if frequency == "daily":
-            interval = timedelta(days=1)
-        elif frequency == "weekly":
-            interval = timedelta(weeks=1)
-        elif frequency == "monthly":
-            interval = timedelta(days=30)
-        else:
-            interval = timedelta(weeks=1)  # Default to weekly
-        
-        current_time = start_date
-        for i in range(count):
-            send_times.append(current_time)
-            current_time += interval
-        
-        return send_times
-    
-    async def get_user_email(self, user_id: str) -> Optional[str]:
-        """Get user's email by user_id.
+        res = (
+            self.supabase
+            .table("Users")
+            .update({"opted_in": False})
+            .eq("user_id", user_id)
+            .execute()
+        )
+        return res.data[0] if res.data else {"user_id": user_id, "opted_in": False}
 
-        Prefers the application's `Users` table (capitalized, as in the UI screenshot),
-        but gracefully falls back to a lowercase `users` table if present.
-        """
-        table_candidates = ["Users", "users"]
-        for table_name in table_candidates:
-            try:
-                result = (
-                    self.supabase
-                    .table(table_name)
-                    .select("email")
-                    .eq("user_id", user_id)
-                    .limit(1)
-                    .execute()
-                )
-                if result.data and result.data[0].get("email"):
-                    return result.data[0]["email"]
-            except Exception:
-                # Ignore and try next candidate table
-                continue
-        return None
-    
+    async def increment_num_fished(self, user_id: str) -> None:
+        current = await self.get_user(user_id)
+        current_value = int((current or {}).get("num_fished") or 0)
+        self.supabase.table("Users").update({"num_fished": current_value + 1}).eq("user_id", user_id).execute()
+
+    # -------------------- Scores helpers --------------------
+    async def ensure_scores_row(self, user_id: str) -> None:
+        self.supabase.table("Scores").upsert(
+            {"score_id": user_id, "learn_attempted": 0, "learn_correct": 0},
+            on_conflict="score_id",
+        ).execute()
+
+    async def record_learn_attempt(self, user_id: str, was_correct: bool) -> None:
+        # Update Users table counters
+        current = await self.get_user(user_id)
+        attempts = int((current or {}).get("learn_attempts") or 0) + 1
+        correct = int((current or {}).get("learn_correct") or 0) + (1 if was_correct else 0)
+        self.supabase.table("Users").update({
+            "learn_attempts": attempts,
+            "learn_correct": correct,
+        }).eq("user_id", user_id).execute()
+
+        # Update Scores table
+        scores_res = (
+            self.supabase
+            .table("Scores")
+            .select("learn_attempted, learn_correct")
+            .eq("score_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        s_attempted = int((scores_res.data or {}).get("learn_attempted") or 0) + 1
+        s_correct = int((scores_res.data or {}).get("learn_correct") or 0) + (1 if was_correct else 0)
+        self.supabase.table("Scores").upsert(
+            {"score_id": user_id, "learn_attempted": s_attempted, "learn_correct": s_correct},
+            on_conflict="score_id",
+        ).execute()
+
+    # -------------------- Sending logic (due-based) --------------------
     async def send_scheduled_emails(self) -> Dict[str, Any]:
-        """Send emails that are scheduled to be sent now"""
+        """
+        Send training emails to Users who are opted-in and due based on `frequency` and `last_sent_at`.
+        """
         try:
-            # Get emails that should be sent now
-            current_time = datetime.utcnow()
-            result = self.supabase.table("campaign_emails").select("*").eq("sent_at", None).lte("scheduled_send_time", current_time.isoformat()).execute()
-            
-            emails_to_send = result.data
+            now_iso = datetime.utcnow().isoformat()
+            # Fetch opted-in users
+            result = (
+                self.supabase
+                .table("Users")
+                .select("user_id, email, frequency, last_sent_at")
+                .eq("opted_in", True)
+                .execute()
+            )
+
+            users = result.data or []
+            due_users: List[Dict[str, Any]] = []
+            for u in users:
+                freq = (u.get("frequency") or "weekly").lower()
+                last_sent_at = u.get("last_sent_at")
+                delta = self._frequency_to_timedelta(freq)
+                if not last_sent_at:
+                    due_users.append(u)
+                    continue
+                try:
+                    last = datetime.fromisoformat(str(last_sent_at).replace("Z", "+00:00").split("+", 1)[0])
+                except Exception:
+                    # If parsing fails, treat as due
+                    due_users.append(u)
+                    continue
+                if datetime.utcnow() - last >= delta:
+                    due_users.append(u)
+
+            email_service = get_email_service()
             sent_count = 0
             failed_count = 0
-            
-            email_service = get_email_service()
-            
-            for email_data in emails_to_send:
+
+            for u in due_users:
+                user_id = u.get("user_id")
+                recipient = u.get("email")
+                if not user_id or not recipient:
+                    failed_count += 1
+                    continue
+
                 try:
-                    # Get the actual user's email from the campaign
-                    campaign_result = self.supabase.table("campaigns").select("user_id").eq("id", email_data["campaign_id"]).execute()
-                    
-                    if not campaign_result.data:
-                        print(f"Campaign not found for email {email_data['id']}")
-                        failed_count += 1
-                        continue
-                    
-                    user_id = campaign_result.data[0]["user_id"]
-                    user_email = await self.get_user_email(user_id)
-                    
-                    if not user_email:
-                        print(f"User email not found for campaign {email_data['campaign_id']}")
-                        failed_count += 1
-                        continue
-                    
-                    success = await email_service.send_campaign_email(
-                        email_data=email_data,
-                        recipient_email=user_email
+                    content_type = "phishing" if random.random() < 0.7 else "legitimate"
+                    msg = generate_message(
+                        message_type="email",
+                        content_type=content_type,
+                        difficulty="medium",
+                        theme=None,
                     )
-                    
-                    if success:
-                        # Update the email as sent
-                        self.supabase.table("campaign_emails").update({
-                            "sent_at": current_time.isoformat()
-                        }).eq("id", email_data["id"]).execute()
+                    email_data = {
+                        "email_type": content_type,
+                        "subject": msg.get("subject") or "Security Training",
+                        "sender_email": msg.get("sender") or os.getenv("SENDGRID_FROM_EMAIL", "noreply@phishschool.com"),
+                        "recipient_email": recipient,
+                        "body": msg.get("body") or "This is a training email.",
+                        "phishing_indicators": msg.get("phishing_indicators") or [],
+                        "explanation": msg.get("explanation") or "",
+                    }
+                    ok = await email_service.send_campaign_email(email_data=email_data, recipient_email=recipient)
+                    if ok:
                         sent_count += 1
+                        self.supabase.table("Users").update({"last_sent_at": now_iso}).eq("user_id", user_id).execute()
                     else:
                         failed_count += 1
-                        
-                except Exception as e:
-                    print(f"Failed to send email {email_data['id']}: {e}")
+                except GeminiClientError:
                     failed_count += 1
-            
+                except Exception:
+                    failed_count += 1
+
             return {
-                "emails_processed": len(emails_to_send),
+                "users_considered": len(users),
+                "users_due": len(due_users),
                 "emails_sent": sent_count,
-                "emails_failed": failed_count
+                "emails_failed": failed_count,
             }
-            
         except Exception as e:
-            print(f"Error in send_scheduled_emails: {e}")
+            logging.getLogger(__name__).error(f"Error in send_scheduled_emails: {e}")
             return {
-                "emails_processed": 0,
+                "users_considered": 0,
+                "users_due": 0,
                 "emails_sent": 0,
                 "emails_failed": 0,
-                "error": str(e)
+                "error": str(e),
             }
 
-# Tracking features removed: no click tracking service or stats
+    def _frequency_to_timedelta(self, frequency: str) -> timedelta:
+        f = (frequency or "weekly").lower()
+        if f == "daily":
+            return timedelta(days=1)
+        if f == "weekly":
+            return timedelta(weeks=1)
+        if f == "monthly":
+            return timedelta(days=30)
+        return timedelta(weeks=1)

@@ -21,12 +21,12 @@ from services.supabase_service import CampaignService
 
 async def test_email_service():
     """Test the email service functionality"""
-    print("🧪 Testing Email Service...")
+    print(" Testing Email Service...")
     
     try:
         # Get SendGrid email service
         email_service = get_email_service()
-        print(f"✅ SendGrid email service initialized: {type(email_service).__name__}")
+        print(f" SendGrid email service initialized: {type(email_service).__name__}")
         
         # Test email data
         test_email_data = {
@@ -47,8 +47,8 @@ async def test_email_service():
         # Test recipient (use environment variable or default)
         test_recipient = os.getenv("TEST_EMAIL_RECIPIENT", "test@example.com")
         
-        print(f"📧 Sending test email to: {test_recipient}")
-        print("ℹ️  Note: In production, emails are sent to the logged-in user's email from Supabase")
+        print(f"Sending test email to: {test_recipient}")
+        print("  Note: In production, emails are sent to the logged-in user's email from Supabase")
         
         # Send the test email
         success = await email_service.send_campaign_email(
@@ -57,33 +57,31 @@ async def test_email_service():
         )
         
         if success:
-            print("✅ Test email sent successfully!")
+            print(" Test email sent successfully!")
         else:
-            print("❌ Failed to send test email")
+            print(" Failed to send test email")
             
     except Exception as e:
-        print(f"❌ Error testing email service: {e}")
+        print(f" Error testing email service: {e}")
 
 async def test_supabase_connection():
     """Test Supabase connection"""
-    print("\n🗄️ Testing Supabase Connection...")
+    print("\n Testing Supabase Connection...")
     
     try:
         from services.supabase_service import get_supabase_client
         supabase = get_supabase_client()
-        
-        # Test connection by querying campaigns table
-        result = supabase.table("campaigns").select("id").limit(1).execute()
-        print("✅ Supabase connection successful!")
-        
-        # Test campaign service
-        campaign_service = CampaignService()
-        print("✅ Campaign service initialized!")
-        
-        # Tracking service removed
-        
+
+        # Test connection by querying Users table
+        _ = supabase.table("Users").select("user_id").limit(1).execute()
+        print(" Supabase connection successful!")
+
+        # Test service init
+        _svc = CampaignService()
+        print(" Service initialized!")
+
     except Exception as e:
-        print(f"❌ Error testing Supabase: {e}")
+        print(f" Error testing Supabase: {e}")
 
 async def test_environment_variables():
     """Test required environment variables"""
@@ -101,20 +99,20 @@ async def test_environment_variables():
     for var, description in required_vars.items():
         value = os.getenv(var)
         if value:
-            print(f"✅ {var}: {description}")
+            print(f" {var}: {description}")
         else:
-            print(f"❌ {var}: {description} (MISSING)")
+            print(f" {var}: {description} (MISSING)")
             missing_vars.append(var)
     
     if missing_vars:
-        print(f"\n⚠️ Missing environment variables: {', '.join(missing_vars)}")
+        print(f"\n Missing environment variables: {', '.join(missing_vars)}")
         print("Please check your .env file and ENVIRONMENT_SETUP.md for instructions.")
     else:
-        print("\n✅ All required environment variables are set!")
+        print("\n All required environment variables are set!")
 
 async def main():
     """Run all tests"""
-    print("🚀 Starting PhishSchool Email System Tests\n")
+    print(" Starting PhishSchool Email System Tests\n")
     
     # Test environment variables first
     await test_environment_variables()
@@ -125,7 +123,7 @@ async def main():
     # Test email service
     await test_email_service()
     
-    print("\n🎉 Tests completed!")
+    print("\n Tests completed!")
     print("\nNext steps:")
     print("1. Set up your environment variables in .env file")
     print("2. Deploy the Supabase schema using supabase_schema.sql")
