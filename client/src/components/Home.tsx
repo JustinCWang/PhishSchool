@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { GoogleGenAI } from '@google/genai'
 import { Link } from 'react-router-dom'
 
 export default function Home() {
-  const [geminiOutput, setGeminiOutput] = useState<string>('')
   const [typedText, setTypedText] = useState<string>('')
   const [showDetector, setShowDetector] = useState<boolean>(false)
   const [showOtherSections, setShowOtherSections] = useState<boolean>(false)
@@ -37,20 +35,6 @@ export default function Home() {
       return () => clearTimeout(timer)
     }
   }, [showDetector])
-
-  async function handleGeminiDemo() {
-    try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY })
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: 'Explain how AI works in a few words',
-      })
-      setGeminiOutput(response.text ?? '')
-    } catch (error) {
-      setGeminiOutput('Failed to fetch from Gemini. Check console and your API key.')
-      console.error('Gemini demo error', error)
-    }
-  }
 
   return (
     <div className="flex flex-col items-center space-y-12 max-w-6xl mx-auto">
