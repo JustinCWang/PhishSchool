@@ -7,6 +7,7 @@ import Campaigns from './campaigns/Campaigns'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
 import Profile from './pages/Profile.tsx'
+import Phished from './pages/Phished.tsx'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="phished" element={<Phished />} />
       </Route>
     </Routes>
   )

@@ -145,7 +145,11 @@ def generate_message(
             "Format your response as a JSON object with the following structure:",
             '{"subject": "Email subject line", "sender": "sender@domain.com", "recipient": "recipient@domain.com", "body": "Email body content", "phishing_indicators": ["list", "of", "indicators"], "explanation": "Brief explanation of why this is phishing/legitimate"}',
             "For legitimate emails, set phishing_indicators to null.",
-            "Keep the email concise but realistic."
+            "Keep the email concise but realistic.",
+            # Critical requirement for training clicks
+            "In the body field, include exactly one malicious-looking URL string enclosed in curly braces, e.g. {http://secure-update.example.com/login}.",
+            "Use plain text only for the body (no HTML/Markdown). Do not use curly braces for anything else.",
+            "Make the URL look relevant to the theme (e.g., account verification, invoice payment, payroll, banking)."
         ])
     else:  # SMS
         prompt_parts.extend([

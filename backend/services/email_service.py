@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import (
     Mail,
@@ -25,6 +26,14 @@ class EmailService:
         
         self.sg = SendGridAPIClient(api_key=self.api_key)
         self.from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@phishschool.com")
+        # Base URL of the frontend to link users to the training page
+        # Priority: FRONTEND_BASE_URL > derived from VITE_API_BASE_URL > localhost dev default
+        env_frontend = os.getenv("FRONTEND_BASE_URL")
+        if env_frontend:
+            self.frontend_base_url = env_frontend
+        else:
+            vite_api = os.getenv("VITE_API_BASE_URL")
+            self.frontend_base_url = self._derive_frontend_from_vite_api(vite_api) if vite_api else "http://localhost:5173"
     
     async def send_email(
         self,
@@ -104,7 +113,7 @@ class EmailService:
             bool: True if email was sent successfully
         """
         try:
-            # Create HTML content for the email
+            # Create HTML and plain content for the email
             html_content = self._create_email_html(email_data)
             plain_content = self._create_email_plain(email_data)
             
@@ -136,6 +145,9 @@ class EmailService:
         """Create HTML content for the email"""
         email_type = email_data.get("email_type", "legitimate")
         email_type_badge = "🔴 PHISHING" if email_type == "phishing" else "🟢 LEGITIMATE"
+        # If phishing, convert any single brace-wrapped URL in the body to a link to our training page
+        raw_body: str = email_data.get("body", "")
+        body_with_link = self._convert_brace_url_to_training_link(raw_body) if email_type == "phishing" else raw_body
         
         html = f"""
         <!DOCTYPE html>
@@ -166,7 +178,7 @@ class EmailService:
                 <p><strong>To:</strong> {email_data["recipient_email"]}</p>
                 
                 <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 5px;">
-                    {email_data["body"].replace(chr(10), '<br>')}
+                    {body_with_link.replace(chr(10), '<br>')}
                 </div>
                 
                 {self._format_phishing_indicators(email_data.get("phishing_indicators", []))}
@@ -188,6 +200,10 @@ class EmailService:
         """Create plain text content for the email"""
         email_type = email_data.get("email_type", "legitimate")
         email_type_badge = "PHISHING" if email_type == "phishing" else "LEGITIMATE"
+        # For phishing emails, also append our training link in place of any brace URL in plain text
+        raw_body: str = email_data.get("body", "")
+        if email_type == "phishing":
+            raw_body = self._convert_brace_url_to_training_link_plain(raw_body)
         
         plain = f"""
 Subject: {email_data["subject"]}
@@ -195,7 +211,7 @@ From: {email_data["sender_email"]}
 To: {email_data["recipient_email"]}
 Type: {email_type_badge}
 
-{email_data["body"]}
+{raw_body}
 
 """
         
@@ -230,6 +246,54 @@ Type: {email_type_badge}
             return ""
         
         return f'<div style="background: #e7f3ff; border: 1px solid #b3d9ff; padding: 10px; border-radius: 5px; margin: 10px 0;"><h4>💡 Explanation:</h4><p>{explanation}</p></div>'
+
+    def _convert_brace_url_to_training_link(self, text: str) -> str:
+        """Find exactly one brace-wrapped URL in the text and convert it into a hyperlink to our training page.
+
+        Example: "Please visit {http://bad.example/login}" becomes
+        "Please visit <a href="{frontend}/phished" ...>http://bad.example/login</a>"
+        If braces aren't found, returns the original text.
+        """
+        try:
+            start = text.index('{')
+            end = text.index('}', start + 1)
+        except ValueError:
+            return text
+
+        malicious = text[start + 1:end].strip()
+        # Build safe anchor displaying the malicious text but linking to our training page
+        training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
+        anchor = f'<a href="{training_href}" style="color: #007bff; text-decoration: underline;">{malicious}</a>'
+        return text[:start] + anchor + text[end + 1:]
+
+    def _convert_brace_url_to_training_link_plain(self, text: str) -> str:
+        """Plain-text variant: replace brace-wrapped URL with the training page URL and preserve the visible URL."""
+        try:
+            start = text.index('{')
+            end = text.index('}', start + 1)
+        except ValueError:
+            return text
+
+        malicious = text[start + 1:end].strip()
+        training_href = f"{self.frontend_base_url.rstrip('/')}/phished"
+        replacement = f"{malicious} (training: {training_href})"
+        return text[:start] + replacement + text[end + 1:]
+
+    def _derive_frontend_from_vite_api(self, vite_api_base_url: str) -> str:
+        """Best-effort derivation of a frontend base URL from VITE_API_BASE_URL.
+
+        - If local dev (localhost/127.0.0.1), map to port 5173.
+        - Otherwise, use the deployed frontend at https://phish-school.vercel.app.
+        """
+        try:
+            parsed = urlparse(vite_api_base_url)
+            host = parsed.hostname or ""
+            scheme = parsed.scheme or "http"
+            if host in ("localhost", "127.0.0.1"):
+                return f"{scheme}://{host}:5173"
+            return "https://phish-school.vercel.app"
+        except Exception:
+            return "http://localhost:5173"
 
 # Global email service instance
 email_service = None
