@@ -285,39 +285,41 @@ export default function Learn() {
     	</div>
   	)}
   	
-  	{/* Title with Score on Right */}
-  	<div className="flex items-center justify-between">
-    	<div className="flex-1"></div>
-    <h1 className="flex-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent flex items-center justify-center gap-3">
-      <span>Learn</span>
-      <img src="/LearnFish.png" alt="Learn Fish" className="h-16 w-auto object-contain" />
-    </h1>
-    	{user && (
-      	<div className="flex-1 flex justify-end">
-        	{loadingStats ? (
-          	<div className="text-sm text-gray-500">Loading...</div>
-        	) : (
-          	<div className="flex gap-3 text-sm">
-            	<div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-md font-semibold">
-              	{learnAttempts} Attempts
-            	</div>
-            	<div className="bg-green-100 text-green-700 px-3 py-1 rounded-md font-semibold">
-              	{learnCorrect} Correct
-            	</div>
-            	<div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-md font-semibold">
-              	{learnAttempts > 0 ? Math.round((learnCorrect / learnAttempts) * 100) : 0}%
-            	</div>
-            	{userRank !== null && (
-              	<div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-md font-semibold flex items-center gap-1">
-                	<span>🏆</span>
-                	<span>#{userRank}</span>
-              	</div>
-            	)}
-          	</div>
-        	)}
-      	</div>
-    	)}
-  	</div>
+	{/* Title with Score on Right */}
+	<div className="flex items-center justify-between">
+		<div className="hidden sm:block sm:flex-1"></div>
+		<h1 className="w-full sm:flex-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent flex items-center justify-center gap-3 px-2">
+			<span>Learn</span>
+			<img src="/LearnFish.png" alt="Learn Fish" className="h-12 w-auto object-contain sm:h-16" />
+		</h1>
+		{user ? (
+			<div className="hidden sm:flex sm:flex-1 justify-end">
+				{loadingStats ? (
+					<div className="text-sm text-gray-500">Loading...</div>
+				) : (
+					<div className="flex gap-3 text-sm">
+						<div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-md font-semibold">
+							{learnAttempts} Attempts
+						</div>
+						<div className="bg-green-100 text-green-700 px-3 py-1 rounded-md font-semibold">
+							{learnCorrect} Correct
+						</div>
+						<div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-md font-semibold">
+							{learnAttempts > 0 ? Math.round((learnCorrect / learnAttempts) * 100) : 0}%
+						</div>
+						{userRank !== null && (
+							<div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-md font-semibold flex items-center gap-1">
+								<span>🏆</span>
+								<span>#{userRank}</span>
+							</div>
+						)}
+					</div>
+				)}
+			</div>
+		) : (
+			<div className="hidden sm:block sm:flex-1" />
+		)}
+	</div>
 
   	{user ? (
     	<>
