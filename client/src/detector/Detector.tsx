@@ -16,7 +16,7 @@ type DetectorResult = {
     to: string
     subject: string
     date: string
-  }
+  } | null
   explanation: string
   indicators: string[]
 }
@@ -109,16 +109,24 @@ export default function Detector() {
       const scoreNum = Number(data.score ?? 0)
       const risk: DetectorResult['risk_level'] = scoreNum >= 70 ? 'high' : scoreNum >= 40 ? 'medium' : 'low'
 
+      const hasMetadata = !!data.metadata && (
+        data.metadata.sender || data.metadata.recipient || data.metadata.subject || data.metadata.date
+      )
+
+      const emailData = hasMetadata
+        ? {
+            from: String(data.metadata?.sender ?? ''),
+            to: String(data.metadata?.recipient ?? ''),
+            subject: String(data.metadata?.subject ?? ''),
+            date: String(data.metadata?.date ?? ''),
+          }
+        : null
+
       const transformedData: DetectorResult = {
         filename: String(data.filename ?? ''),
         score: scoreNum,
         risk_level: risk,
-        email_data: {
-          from: String(data.metadata?.sender ?? ''),
-          to: String(data.metadata?.recipient ?? ''),
-          subject: String(data.metadata?.subject ?? ''),
-          date: String(data.metadata?.date ?? ''),
-        },
+        email_data: emailData,
         explanation: String(data.rationale ?? ''),
         indicators: data.rationale ? [String(data.rationale)] : [],
       }
