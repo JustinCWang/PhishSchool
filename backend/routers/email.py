@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from services.supabase_service import CampaignService
 import logging
+import os
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -43,6 +44,14 @@ async def send_test_email():
     """
     try:
         from services.email_service import get_email_service
+        
+        # Validate required environment configuration for email sending
+        missing_env = [name for name in ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL"] if not os.getenv(name)]
+        if missing_env:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Missing required environment variables: {', '.join(missing_env)}"
+            )
         
         email_service = get_email_service()
         
@@ -94,10 +103,31 @@ async def send_phishing_now(req: SendPhishingNowRequest):
         from services.gemini_client import generate_message, GeminiClientError
         import os
 
-        svc = CampaignService()
+        # Validate required environment configuration early with clear messages
+        missing_env = [
+            name for name in [
+                "SUPABASE_URL",
+                "SUPABASE_SERVICE_ROLE_KEY",
+                "SENDGRID_API_KEY",
+                "SENDGRID_FROM_EMAIL",
+            ] if not os.getenv(name)
+        ]
+        if missing_env:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Missing required environment variables: {', '.join(missing_env)}"
+            )
+
+        # Initialize services with explicit error handling
+        try:
+            svc = CampaignService()
+        except Exception as exc:
+            logger.error(f"Supabase initialization failed: {exc}")
+            raise HTTPException(status_code=500, detail=f"Supabase configuration error: {str(exc)}")
+
         user_email = await svc.get_user_email(req.user_id)
         if not user_email:
-            raise HTTPException(status_code=404, detail="User email not found")
+            raise HTTPException(status_code=404, detail="User email not found for provided user_id. Ensure a row exists in 'Users' with a non-null email.")
 
         # Generate a phishing email message
         try:
@@ -123,7 +153,11 @@ async def send_phishing_now(req: SendPhishingNowRequest):
                 "explanation": "Uses urgency and threats to coerce action."
             }
 
-        email_service = get_email_service()
+        try:
+            email_service = get_email_service()
+        except Exception as exc:
+            logger.error(f"Email service initialization failed: {exc}")
+            raise HTTPException(status_code=500, detail=f"Email service configuration error: {str(exc)}")
         email_data = {
             "email_type": "phishing",
             "subject": message_data.get("subject") or "Security Alert",
